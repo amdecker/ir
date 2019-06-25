@@ -6,12 +6,9 @@ Combines photos into one large photo using javacv, the opencv wrapper from https
  */
 
 import org.bytedeco.javacv.FFmpegFrameGrabber;
-import org.bytedeco.javacv.Frame;
-import org.bytedeco.javacv.FrameConverter;
 import org.bytedeco.opencv.opencv_core.Mat;
 import org.bytedeco.opencv.opencv_core.MatVector;
 import org.bytedeco.opencv.opencv_stitching.Stitcher;
-import org.bytedeco.opencv.opencv_videoio.VideoCapture;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
@@ -40,31 +37,20 @@ public class Runner
         g.stop();
     }
 
-    public static String stitcher()
+    public static void stitcher(String path, String panoName)
     {
         MatVector photos = new MatVector();
 
         System.out.println("Reading files...");
 
-        int count = 0;
-        int round = 0;
-        while(count <= 140)
+        for (int i = 0; i < 28; i++)
         {
-            photos = new MatVector();
-            System.out.println("ROUND: " + round);
-            for (int i = 0; i < 28; i++)
-            {
-                if(count > 140)
-                {
-                    System.exit(0);
-                }
-                photos.resize(photos.size() + 1);
+            photos.resize(photos.size() + 1);
 
-                // the files do not need to be in any particular order or have a certain name, but naming them by a number
-                // just made the process of reading them in easier
-                photos.put(photos.size() - 1, imread("src/main/java/drivewayFrames/" + count + ".png"));
-                count++;
-            }
+            // the files do not need to be in any particular order or have a certain name, but naming them by a number
+            // just made the process of reading them in easier
+            photos.put(photos.size() - 1, imread(path + i + ".png"));
+        }
 
             System.out.println("Number of photos to be stitched: " + photos.size());
 
@@ -77,25 +63,20 @@ public class Runner
             System.out.println("Response Code: " + response);
 
             System.out.println("Saving...");
-            imwrite("src/main/java/panoramaDriveway" + round + ".jpg", pano);
+            imwrite("src/main/java/" + panoName + ".jpg", pano);
 
             System.out.println("DONE!");
-
-            count -= 7;
-            round++;
-        }
-
-        return "";
-
     }
 
     public static void main(String[] args)
     {
-//        try { videoToFrames("driveway2.mp4", "src/main/java/drivewayFrames/"); }
+//        try { videoToFrames("video.mp4", "src/main/java/drivewayFrames/"); }
 //        catch(Exception e){System.out.println(e.toString());}
 
-        stitcher();
+//        stitcher();
 
+
+        
 /*
     Response codes:
     (description from https://www.pyimagesearch.com/2018/12/17/image-stitching-with-opencv-and-python/)
