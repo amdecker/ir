@@ -147,6 +147,5 @@ public class IrStitcher
         }
 
         System.out.println("total time: " + (System.currentTimeMillis() - start) / 1000);
-
     }
 }
