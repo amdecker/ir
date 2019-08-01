@@ -1,9 +1,8 @@
-import cv2
 import numpy as np
+import cv2
 import time
 import os
 from datetime import datetime
-import StitcherFromCPP_working as cpp
 
 """
 author: Amos Decker
@@ -19,14 +18,10 @@ https://raw.githubusercontent.com/opencv/opencv/master/samples/python/stitching_
 https://raw.githubusercontent.com/opencv/opencv/master/samples/cpp/stitching_detailed.cpp
 """
 
-import numpy as np
-import cv2
-import time
-
 
 def stitch_fast(data, use_kaze=False):
-    """waaay faster than the other stitch() method because it does not do any exposure compensation or seam adjusting, so the results
-    are slightly worse, but for one set of 45 images it took 33 seconds using this stitch_fast() compared to 607 seconds using stitch()"""
+    """waaay faster than the other stitch() method. The results are slightly worse, but for one set of 45 images it
+    took 33 seconds using this stitch_fast() compared to 607 seconds using stitch()"""
     start = time.time()
     use_gpu = False
     work_megapix = -1
@@ -70,21 +65,19 @@ def stitch_fast(data, use_kaze=False):
 
     print("getting matches info...")
     matcher = cv2.detail.BestOf2NearestMatcher_create(use_gpu, match_conf)
-    matches_info = matcher.apply2(features)
+
+    # setting the matching mask makes it a lot faster because it tells it the order of images: https://software.intel.com/sites/default/files/Fast%20Panorama%20Stitching.pdf
+    match_mask = np.zeros((len(features), len(features)), np.uint8)
+    for i in range(len(data[0][1]) - 1):
+        match_mask[i, i + 1] = 1
+
+    matches_info = matcher.apply2(features, match_mask)
     matcher.collectGarbage()
+
 
     # gets the images that have enough matches and are part of the pano
     print("getting indices...")
-    indices = cv2.detail.leaveBiggestComponent(features, matches_info, 1.0)
-    img_subset = []
-    for i in range(len(indices)):
-        img_subset.append(images[indices[i, 0]])
-    images = img_subset
-    num_images = len(images)
-
-    if num_images < 2:
-        print("Need more images")
-        exit()
+    num_images = len(data[0][1])
 
     # get camera params
     print("finding camera params...")
@@ -154,6 +147,9 @@ def stitch_fast(data, use_kaze=False):
     # warp images and masks
     print("warping...")
     warper = cv2.PyRotationWarper(warp_type, warped_image_scale * seam_work_aspect)
+    print()
+
+    corners = []
     for i in range(num_images):
         K = cameras[i].K().astype(np.float32)
         K[0, 0] *= seam_work_aspect
@@ -163,6 +159,7 @@ def stitch_fast(data, use_kaze=False):
 
         corner, image_wp = warper.warp(images[i], K, cameras[i].R, cv2.INTER_LINEAR, cv2.BORDER_REFLECT)
         images_warped.append(image_wp)
+        corners.append(corner)
 
         p, mask_wp = warper.warp(masks[i], K, cameras[i].R, cv2.INTER_NEAREST, cv2.BORDER_CONSTANT)
         masks_warped.append(mask_wp.get())
@@ -175,25 +172,28 @@ def stitch_fast(data, use_kaze=False):
 
     # blend images
     for res_name, imgs in data:
-        corners = []
-        sizes = []
-        blender = None
-        compose_scale = -1
-
         # compensate for exposure -- NOTE it doesn't do this
         # but see https://docs.opencv.org/4.1.0/d2/d37/classcv_1_1detail_1_1ExposureCompensator.html for options
         compensator = cv2.detail.ExposureCompensator_createDefault(cv2.detail.ExposureCompensator_NO)
+        # compensator = cv2.detail.ExposureCompensator_createDefault(cv2.detail.ExposureCompensator_GAIN_BLOCKS)
         compensator.feed(corners=corners, images=images_warped, masks=masks_warped)
 
         # find seams in the images -- NOTE just as with exposure this doesn't actually do anything
         # but there are other possibilities here: https://docs.opencv.org/4.1.0/d7/d09/classcv_1_1detail_1_1SeamFinder.html#aaefc003adf1ebec13867ad9203096f6fa55b2503305e94168c0b36c4531f288d7
         seam_finder = cv2.detail.SeamFinder_createDefault(cv2.detail.SeamFinder_NO)
+        # seam_finder = cv2.detail_DpSeamFinder("COLOR_GRAD")
+
         seam_finder.find(images_warped_f, corners, masks_warped)
 
-        for i in range(len(data[0][1])):
+        sizes = []
+        blender = None
+        compose_scale = -1
+
+        for i in range(num_images):
             full_img = imgs[i]
 
             if compose_scale == -1:  # if it hasn't been set yet
+                corners = []
                 if compose_megapix > 0:
                     compose_scale = min(1.0, np.sqrt(compose_megapix * 1e6 / (full_img.shape[0] * full_img.shape[1])))
                 else:
@@ -242,14 +242,14 @@ def stitch_fast(data, use_kaze=False):
                 elif blend_type == "multiband":
                     print(blend_type)
                     blender = cv2.detail_MultiBandBlender()
-                    blender.setNumBands((np.log(blend_width) / np.log(2.) - 1.).astype(np.int))
+                    # blender.setNumBands((np.log(blend_width) / np.log(2.) - 1.).astype(np.int)) #TODO
                 elif blend_type == "feather":  # mixes images at borders
                     print(blend_type)
                     blender = cv2.detail_FeatherBlender()
                     blender.setSharpness(1.0 / blend_width)
                 blender.prepare(dst_sz)
 
-            blender.feed(cv2.UMat(image_warped_s), mask_warped, corners[i])
+            blender.feed(image_warped_s, mask_warped, corners[i])
 
         result = None
         result_mask = None
@@ -257,23 +257,23 @@ def stitch_fast(data, use_kaze=False):
         result, result_mask = blender.blend(result, result_mask)
         print("SIZE:", result.shape)
         cv2.imwrite(res_name, result)
-    #
-    # print('Done!')
-    # print("total time: " + str(time.time() - start))
-
-
-
 
 
 def stitch(data, use_kaze=False):
-    """"THIS WORKS!!!! with the modified opencv c++ code stitcher.stitch() takes vl images as first param and then
+    """"this works ONLY WITH the modified opencv c++ code stitcher.stitch() takes vl images as first param and then
     creates a panorama using the images from the second param. So if you want a vl pano, do
      stitcher.stitch(vl_images, vl_images) and if you want an ir pano do this: stitcher.stitch(vl_images, ir_images)"""
-    # stitcher = cv2.createStitcher(False)
     print("stitching...")
     stitcher = cv2.Stitcher_create()
     if use_kaze:
-        stitcher.setFeaturesFinder(cv2.KAZE.create())  # sometimes does a better job, but can take longer
+        stitcher.setFeaturesFinder(cv2.KAZE.create())  # sometimes does a better job, but can take longer. Alternative is ORB
+
+    stitcher.setPanoConfidenceThresh(1.0)
+
+    match_mask = np.zeros((len(data[0][1]), len(data[0][1])), np.uint8)
+    for i in range(len(data[0][1]) - 1):
+        match_mask[i, i + 1] = 1
+    stitcher.setMatchingMask(match_mask)
 
     print("vl...")
     status, stitched_vl = stitcher.stitch(data[0][1], data[0][1])
@@ -293,72 +293,38 @@ def stitch(data, use_kaze=False):
 
 
 if __name__ == "__main__":
-    # num = 6
     num_imgs = 45
 
+    # grab all the pano folders
     pano_dirs = []
     for dir in next(os.walk('.'))[1]:
         if dir[:4] == "pano":
             pano_dirs.append(dir)
     print(pano_dirs)
-    pano_dirs = ['pano-20190724113638',
-                 'pano-20190724103800',
-                 'pano-20190724114642',
-                 'pano-20190724120118',
-                 'pano-20190724110922',
-                 'pano-20190724113956',
-                 'pano-20190724110324',
-                 'pano-20190724154235',
-                 'pano-20190724120437',
-                 'pano-20190724104204',
-                 'pano-20190724152042',
-                 'pano-20190724114241',
-                 'pano-20190724111507',
-                 'pano-20190724115154',
-                 'pano-20190724174011',
-                 'pano-20190724102430',
-                 'pano-20190724102857',
-                 'pano-20190724152723',
-                 'pano-20190724100905',
-                 'pano-20190724154010',
-                 'pano-20190724150212',
-                 'pano-20190724104904',
-                 'pano-20190724151553',
-                 'pano-20190724111841',
-                 'pano-20190724153659',
-                 'pano-20190724145728',
-                 'pano-20190724152352',
-                 'pano-20190724153414',
-                 'pano-20190724155321',
-                 'pano-20190724145944',
-                 'pano-20190724111206',
-                 'pano-20190724110607',
-                 'pano-20190724103415',
-                 'pano-20190724173754',
-                 'pano-20190724105927',
-                 'pano-20190724151238',
-                 'pano-20190724150711']
 
-    s, e = 33, 37
+    s, e = 0, 1
     print(s, e)
     for d in range(s, e):
-        dir = pano_dirs[d]
+        kaze = True
+        directory = pano_dirs[d]
+        directory = "pano-20190724114828"
         start = time.time()
         print("\n\n---------------", d)
+        print("KAZE:", kaze)
         print(datetime.utcfromtimestamp(start - 4 * 3600).strftime('%Y-%m-%d %H:%M:%S'))
-        print(dir)
-        # print([dir + "/vl{0}.png".format(i) if i > 9 else dir + "/vl0{0}.png".format(i) for i in range(num_imgs)])
+        print(directory)
 
-        vl_im = [cv2.imread(dir + "/vl{0}.png".format(i)) if i > 9 else cv2.imread(dir + "/vl0{0}.png".format(i)) for i in range(num_imgs)]
-        ir_im = [cv2.imread(dir + "/ir{0}.png".format(i)) if i > 9 else cv2.imread(dir + "/ir0{0}.png".format(i)) for i in range(num_imgs)]
-        mx_im = [cv2.imread(dir + "/mx{0}.png".format(i)) if i > 9 else cv2.imread(dir + "/mx0{0}.png".format(i)) for i in range(num_imgs)]
+        vl_im = [cv2.imread(directory + "/vl{0}.png".format(i)) if i > 9 else cv2.imread(directory + "/vl0{0}.png".format(i)) for i in range(num_imgs)]
+        ir_im = [cv2.imread(directory + "/ir{0}.png".format(i)) if i > 9 else cv2.imread(directory + "/ir0{0}.png".format(i)) for i in range(num_imgs)]
+        mx_im = [cv2.imread(directory + "/mx{0}.png".format(i)) if i > 9 else cv2.imread(directory + "/mx0{0}.png".format(i)) for i in range(num_imgs)]
 
         types = ["vl", "ir", "mx"]
 
-        data = [("output/{0}-{1}.png".format(dir, types[0]), vl_im),
-                ("output/{0}-{1}.png".format(dir, types[1]), ir_im),
-                ("output/{0}-{1}.png".format(dir, types[2]), mx_im)]
-        # stitch(data, use_kaze=True)
-        stitch_fast(data, use_kaze=True) #33 seconds
+        data = [("output/{0}-{1}.png".format(directory, types[0]), vl_im),
+                ("output/{0}-{1}.png".format(directory, types[1]), ir_im),
+                ("output/{0}-{1}.png".format(directory, types[2]), mx_im)]
+
+        # stitch(data, use_kaze=kaze)  # slow, requires modified opencv library
+        stitch_fast(data, use_kaze=kaze)  # fast, uses opencv-python from pip
 
         print("total time:", (time.time() - start))
