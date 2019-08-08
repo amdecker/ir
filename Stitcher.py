@@ -8,26 +8,23 @@ from datetime import datetime
 author: Amos Decker
 
 A working python stitcher for ir images. Uses visible light images to find the keypoints and do all of the adjustments,
-but then swaps out the visible light images for ir images.
+but then swaps out the visible light images for ir (or mx) images.
 
-Current implementation produces ir, vl, and mixed panoramas, but producing the final pano for any/all of them is not necessary.
-
-
-modified version of these:
+The stitch_fast() is a modified version of these:
 https://raw.githubusercontent.com/opencv/opencv/master/samples/python/stitching_detailed.py
 https://raw.githubusercontent.com/opencv/opencv/master/samples/cpp/stitching_detailed.cpp
+
+stitch() relies on a modified opencv that can be found here: https://drive.google.com/drive/folders/1m4QldXdOSNnNFJIXDueIMOLjRZhhL6Ji?usp=sharing
 """
 
 
 def stitch_fast(data, use_kaze=False):
     """waaay faster than the other stitch() method. The results are slightly worse, but for one set of 45 images it
     took 33 seconds using this stitch_fast() compared to 607 seconds using stitch()"""
-    start = time.time()
     use_gpu = False
     work_megapix = -1
     seam_megapix = 0.1
     compose_megapix = -1
-    ba_refine_mask = "xxxxx"
     wave_correct = "horiz"  # "vert"
     warp_type = "cylindrical"  # "spherical"  #"mercator"  #"cylindrical"
     match_conf = 0.3
@@ -60,13 +57,13 @@ def stitch_fast(data, use_kaze=False):
             seam_scale = min(1.0, np.sqrt(seam_megapix * 1e6 / (full_img.shape[0] * full_img.shape[1])))
             seam_work_aspect = seam_scale / work_scale
         features.append(cv2.detail.computeImageFeatures2(finder, img))  # gets image features
-        images.append(
-            cv2.resize(src=full_img, dsize=None, fx=seam_scale, fy=seam_scale, interpolation=cv2.INTER_LINEAR_EXACT))
+        images.append(cv2.resize(src=full_img, dsize=None, fx=seam_scale, fy=seam_scale, interpolation=cv2.INTER_LINEAR_EXACT))
 
     print("getting matches info...")
     matcher = cv2.detail.BestOf2NearestMatcher_create(use_gpu, match_conf)
 
-    # setting the matching mask makes it a lot faster because it tells it the order of images: https://software.intel.com/sites/default/files/Fast%20Panorama%20Stitching.pdf
+    # setting the matching mask makes it a lot faster because it tells it the order of images:
+    # https://software.intel.com/sites/default/files/Fast%20Panorama%20Stitching.pdf
     match_mask = np.zeros((len(features), len(features)), np.uint8)
     for i in range(len(data[0][1]) - 1):
         match_mask[i, i + 1] = 1
@@ -74,9 +71,6 @@ def stitch_fast(data, use_kaze=False):
     matches_info = matcher.apply2(features, match_mask)
     matcher.collectGarbage()
 
-
-    # gets the images that have enough matches and are part of the pano
-    print("getting indices...")
     num_images = len(data[0][1])
 
     # get camera params
@@ -93,18 +87,6 @@ def stitch_fast(data, use_kaze=False):
     print("adjusting camera params...")
     adjuster = cv2.detail_BundleAdjusterRay()
     adjuster.setConfThresh(1)
-    refine_mask = np.zeros((3, 3), np.uint8)
-    if ba_refine_mask[0] == 'x':
-        refine_mask[0, 0] = 1
-    if ba_refine_mask[1] == 'x':
-        refine_mask[0, 1] = 1
-    if ba_refine_mask[2] == 'x':
-        refine_mask[0, 2] = 1
-    if ba_refine_mask[3] == 'x':
-        refine_mask[1, 1] = 1
-    if ba_refine_mask[4] == 'x':
-        refine_mask[1, 2] = 1
-    adjuster.setRefinementMask(refine_mask)
     b, cameras = adjuster.apply(features, matches_info, cameras)
     if not b:
         print("Camera parameters adjusting failed.")
@@ -139,7 +121,7 @@ def stitch_fast(data, use_kaze=False):
     images_warped = []
     masks = []
 
-    # create masks and fill with white pixels
+    # create masks
     for i in range(num_images):
         um = cv2.UMat(255 * np.ones((images[i].shape[0], images[i].shape[1]), np.uint8))
         masks.append(um)
@@ -170,19 +152,16 @@ def stitch_fast(data, use_kaze=False):
         imgf = img.astype(np.float32)
         images_warped_f.append(imgf)
 
-    # blend images
+    # blends each type of image and saves them
     for res_name, imgs in data:
         # compensate for exposure -- NOTE it doesn't do this
         # but see https://docs.opencv.org/4.1.0/d2/d37/classcv_1_1detail_1_1ExposureCompensator.html for options
         compensator = cv2.detail.ExposureCompensator_createDefault(cv2.detail.ExposureCompensator_NO)
-        # compensator = cv2.detail.ExposureCompensator_createDefault(cv2.detail.ExposureCompensator_GAIN_BLOCKS)
         compensator.feed(corners=corners, images=images_warped, masks=masks_warped)
 
         # find seams in the images -- NOTE just as with exposure this doesn't actually do anything
         # but there are other possibilities here: https://docs.opencv.org/4.1.0/d7/d09/classcv_1_1detail_1_1SeamFinder.html#aaefc003adf1ebec13867ad9203096f6fa55b2503305e94168c0b36c4531f288d7
         seam_finder = cv2.detail.SeamFinder_createDefault(cv2.detail.SeamFinder_NO)
-        # seam_finder = cv2.detail_DpSeamFinder("COLOR_GRAD")
-
         seam_finder.find(images_warped_f, corners, masks_warped)
 
         sizes = []
@@ -239,10 +218,9 @@ def stitch_fast(data, use_kaze=False):
                 if blend_width < 1:
                     print("no blend")
                     blender = cv2.detail.Blender_createDefault(cv2.detail.Blender_NO)
-                elif blend_type == "multiband":
+                elif blend_type == "multiband": # I think this is generally better
                     print(blend_type)
                     blender = cv2.detail_MultiBandBlender()
-                    # blender.setNumBands((np.log(blend_width) / np.log(2.) - 1.).astype(np.int)) #TODO
                 elif blend_type == "feather":  # mixes images at borders
                     print(blend_type)
                     blender = cv2.detail_FeatherBlender()
@@ -302,12 +280,11 @@ if __name__ == "__main__":
             pano_dirs.append(dir)
     print(pano_dirs)
 
-    s, e = 0, 1
-    print(s, e)
-    for d in range(s, e):
+    start, end = 0, 1
+    print(start, end)
+    for d in range(start, end):
         kaze = True
         directory = pano_dirs[d]
-        directory = "pano-20190724114828"
         start = time.time()
         print("\n\n---------------", d)
         print("KAZE:", kaze)
@@ -327,4 +304,4 @@ if __name__ == "__main__":
         # stitch(data, use_kaze=kaze)  # slow, requires modified opencv library
         stitch_fast(data, use_kaze=kaze)  # fast, uses opencv-python from pip
 
-        print("total time:", (time.time() - start))
+        print("total time (secs):", (time.time() - start))
