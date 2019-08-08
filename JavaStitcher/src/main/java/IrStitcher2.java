@@ -24,7 +24,7 @@ import static org.bytedeco.opencv.global.opencv_stitching.*;
  * @author Amos Decker
  * fast stitcher. Works on mac with ORB and that is about it. Doesn't work on windows.
  */
-public class StitchingDetailed2
+public class IrStitcher2
 {
     public int OK = 0;
     public int ERR_NEED_MORE_IMGS = 1;
