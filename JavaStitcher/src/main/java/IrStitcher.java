@@ -138,6 +138,12 @@ public class IrStitcher
         }
 
         IrStitcher stitcher = new IrStitcher(vlImages, irImages, mxImages);
+        
+        //speeds things up by a few seconds:
+        stitcher.stitcher.setCompositingResol(.5);
+        stitcher.stitcher.setRegistrationResol(0.08);
+        stitcher.stitcher.setSeamEstimationResol(0.08);
+        
         Mat[] panos = stitcher.stitch();
 
         System.out.println("Saving...");
