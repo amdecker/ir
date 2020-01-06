@@ -252,6 +252,7 @@ def stitch(data, use_kaze=False):
 
 
 if __name__ == "__main__":
+    num_imgs = 45
     print("*** SELECT folder containing all images ***")
     directory = open_directory_chooser()
 
@@ -260,30 +261,18 @@ if __name__ == "__main__":
     print("\n\n---------------")
     print(directory)
 
-    # the number of ir images should be 45 but this counts them in case the number changes. number of ir should = num vl
-    num_ir_imgs = 0
-    num_vl_imgs = 0
-    num_mx_imgs = 0
-    for filename in listdir(directory):
-        if "ir" in filename:
-            num_ir_imgs += 1
-        elif "vl" in filename:
-            num_vl_imgs += 1
-        elif "mx" in filename:
-            num_mx_imgs += 1
-    if num_ir_imgs != num_vl_imgs:
-        raise Exception("number of visible light images does not equal number of infrared images")
+
 
     #  get images
     vl_im = [
         cv2.imread(directory + "/vl{0}.png".format(i)) if i > 9 else cv2.imread(directory + "/vl0{0}.png".format(i)) for
-        i in range(num_vl_imgs)]
+        i in range(num_imgs)]
     ir_im = [
         cv2.imread(directory + "/ir{0}.png".format(i)) if i > 9 else cv2.imread(directory + "/ir0{0}.png".format(i)) for
-        i in range(num_ir_imgs)]
+        i in range(num_imgs)]
     mx_im = [
         cv2.imread(directory + "/mx{0}.png".format(i)) if i > 9 else cv2.imread(directory + "/mx0{0}.png".format(i)) for
-        i in range(num_mx_imgs)]
+        i in range(num_imgs)]
 
     data = [vl_im, ir_im, mx_im]
 
