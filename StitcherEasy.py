@@ -12,9 +12,26 @@ https://raw.githubusercontent.com/opencv/opencv/master/samples/cpp/stitching_det
 
 import cv2
 import numpy as np
+import time
+import datetime
+from os import listdir
+
+from tkinter import Tk
+from tkinter.filedialog import askdirectory
+
+def open_directory_chooser():
+    root = Tk()
+    root.withdraw()
+    root.update()
+    directory_name = askdirectory()
+    root.update()
+    root.destroy()
+    return directory_name
+
 
 def stitch(data, use_kaze=False):
     """same as stitch_fast() in Stitcher.py"""
+    final_panos = []
 
     use_gpu = False
     work_megapix = -1
@@ -37,8 +54,8 @@ def stitch(data, use_kaze=False):
     print("getting image features and scaling images...")
     work_scale = -1
     seam_scale = -1
-    for i in range(len(data[0][1])):
-        full_img = data[0][1][i]
+    for i in range(len(data[0])):
+        full_img = data[0][i]
 
         if work_megapix < 0:
             img = full_img
@@ -60,13 +77,13 @@ def stitch(data, use_kaze=False):
     # setting the matching mask makes it a lot faster because it tells it the order of images:
     # https://software.intel.com/sites/default/files/Fast%20Panorama%20Stitching.pdf
     match_mask = np.zeros((len(features), len(features)), np.uint8)
-    for i in range(len(data[0][1]) - 1):
+    for i in range(len(data[0]) - 1):
         match_mask[i, i + 1] = 1
 
     matches_info = matcher.apply2(features, match_mask)
     matcher.collectGarbage()
 
-    num_images = len(data[0][1])
+    num_images = len(data[0])
 
     # get camera params
     print("finding camera params...")
@@ -148,7 +165,7 @@ def stitch(data, use_kaze=False):
         images_warped_f.append(imgf)
 
     # blends each type of image and saves them
-    for res_name, imgs in data:
+    for imgs in data:
         # compensate for exposure -- NOTE it doesn't do this
         # but see https://docs.opencv.org/4.1.0/d2/d37/classcv_1_1detail_1_1ExposureCompensator.html for options
         compensator = cv2.detail.ExposureCompensator_createDefault(cv2.detail.ExposureCompensator_NO)
@@ -176,12 +193,12 @@ def stitch(data, use_kaze=False):
                 warped_image_scale *= compose_work_aspect
 
                 warper = cv2.PyRotationWarper(warp_type, warped_image_scale)
-                for c in range(len(data[0][1])):
+                for c in range(len(data[0])):
                     cameras[c].focal *= compose_work_aspect
                     cameras[c].ppx *= compose_work_aspect
                     cameras[c].ppy *= compose_work_aspect
 
-                    sz = (data[0][1][c].shape[1] * compose_scale, data[0][1][c].shape[0] * compose_scale)
+                    sz = (data[0][c].shape[1] * compose_scale, data[0][c].shape[0] * compose_scale)
                     K = cameras[c].K().astype(np.float32)
                     roi = warper.warpRoi(sz, K, cameras[c].R)
                     corners.append(roi[0:2])
@@ -226,44 +243,58 @@ def stitch(data, use_kaze=False):
 
         result = None
         result_mask = None
-        print("blending..." + res_name)
+        print("blending...")
         result, result_mask = blender.blend(result, result_mask)
         print("SIZE:", result.shape)
-        cv2.imwrite(res_name, result)
+        final_panos.append(result)
+        # cv2.imwrite(res_name, result)
+    return final_panos
 
 
 if __name__ == "__main__":
-    num_imgs = 45
+    print("*** SELECT folder containing all images ***")
+    directory = open_directory_chooser()
 
-    # grab all the pano folders
-    pano_dirs = []
-    for dir in next(os.walk('.'))[1]:
-        if dir[:4] == "pano":
-            pano_dirs.append(dir)
-    print(pano_dirs)
+    start = time.time()
+    kaze = True
+    print("\n\n---------------")
+    print(directory)
 
-    start, end = 0, 1
-    print(start, end)
-    for d in range(start, end):
-        kaze = True
-        directory = pano_dirs[d]
-        start = time.time()
-        print("\n\n---------------", d)
-        print("KAZE:", kaze)
-        print(datetime.utcfromtimestamp(start - 4 * 3600).strftime('%Y-%m-%d %H:%M:%S'))
-        print(directory)
+    # the number of ir images should be 45 but this counts them in case the number changes. number of ir should = num vl
+    num_ir_imgs = 0
+    num_vl_imgs = 0
+    num_mx_imgs = 0
+    for filename in listdir(directory):
+        if "ir" in filename:
+            num_ir_imgs += 1
+        elif "vl" in filename:
+            num_vl_imgs += 1
+        elif "mx" in filename:
+            num_mx_imgs += 1
+    if num_ir_imgs != num_vl_imgs:
+        raise Exception("number of visible light images does not equal number of infrared images")
 
-        vl_im = [cv2.imread(directory + "/vl{0}.png".format(i)) if i > 9 else cv2.imread(directory + "/vl0{0}.png".format(i)) for i in range(num_imgs)]
-        ir_im = [cv2.imread(directory + "/ir{0}.png".format(i)) if i > 9 else cv2.imread(directory + "/ir0{0}.png".format(i)) for i in range(num_imgs)]
-        mx_im = [cv2.imread(directory + "/mx{0}.png".format(i)) if i > 9 else cv2.imread(directory + "/mx0{0}.png".format(i)) for i in range(num_imgs)]
+    #  get images
+    vl_im = [
+        cv2.imread(directory + "/vl{0}.png".format(i)) if i > 9 else cv2.imread(directory + "/vl0{0}.png".format(i)) for
+        i in range(num_vl_imgs)]
+    ir_im = [
+        cv2.imread(directory + "/ir{0}.png".format(i)) if i > 9 else cv2.imread(directory + "/ir0{0}.png".format(i)) for
+        i in range(num_ir_imgs)]
+    mx_im = [
+        cv2.imread(directory + "/mx{0}.png".format(i)) if i > 9 else cv2.imread(directory + "/mx0{0}.png".format(i)) for
+        i in range(num_mx_imgs)]
 
-        types = ["vl", "ir", "mx"]
+    data = [vl_im, ir_im, mx_im]
 
-        data = [("output/{0}-{1}.png".format(directory, types[0]), vl_im),
-                ("output/{0}-{1}.png".format(directory, types[1]), ir_im),
-                ("output/{0}-{1}.png".format(directory, types[2]), mx_im)]
+    panos = stitch(data, use_kaze=kaze)  # fast, uses opencv-python from pip
 
-        # stitch(data, use_kaze=kaze)  # slow, requires modified opencv library
-        stitch_fast(data, use_kaze=kaze)  # fast, uses opencv-python from pip
+    print("*** CHOOSE save location ***")
+    save_location = open_directory_chooser()
+    cv2.imwrite(save_location + "/vl.png", panos[0])
+    cv2.imwrite(save_location + "/ir.png", panos[1])
+    cv2.imwrite(save_location + "/mx.png", panos[2])
 
-        print("total time (secs):", (time.time() - start))
+
+
+    print("total time (secs):", (time.time() - start))
