@@ -13,11 +13,9 @@ https://raw.githubusercontent.com/opencv/opencv/master/samples/cpp/stitching_det
 import cv2
 import numpy as np
 import time
-import datetime
-from os import listdir
-
 from tkinter import Tk
 from tkinter.filedialog import askdirectory
+
 
 def open_directory_chooser():
     root = Tk()
@@ -29,7 +27,39 @@ def open_directory_chooser():
     return directory_name
 
 
-def stitch(data, use_kaze=False):
+def remove_black(img):
+    """
+    removes the black border on the tops and bottoms of images
+
+    :param img: get this by doing cv2.imread(filepath)
+    :return: cropped image
+    """
+    BLACK = np.zeros((1, 3))
+
+    # looks at the top half of each column and finds the place where the image stops being black
+    upper_limit = 0
+    for x in range(img.shape[1]):
+        for y in range(img.shape[0] // 2):
+            if img[y, x] in BLACK:
+                if y > upper_limit:
+                    upper_limit = y
+            else:
+                break
+
+    # looks at the bottom half of each column and finds the place where the image stops being black
+    lower_limit = img.shape[0] - 1
+    for x in range(img.shape[1]):
+        for y in range(img.shape[0] - 1, img.shape[0] // 2, -1):
+            if img[y, x] in BLACK:
+                if y < lower_limit:
+                    lower_limit = y
+            else:
+                break
+
+    return img[upper_limit:lower_limit, :]
+
+
+def stitch(data, use_kaze=False, rem_black=True):
     """same as stitch_fast() in Stitcher.py"""
     final_panos = []
 
@@ -246,22 +276,23 @@ def stitch(data, use_kaze=False):
         print("blending...")
         result, result_mask = blender.blend(result, result_mask)
         print("SIZE:", result.shape)
+
+        # optionally remove the black border from the images
+        if rem_black:
+            result = remove_black(result)
         final_panos.append(result)
-        # cv2.imwrite(res_name, result)
     return final_panos
 
 
 if __name__ == "__main__":
+    # did some testing with pano-20190724114828
     num_imgs = 45
     print("*** SELECT folder containing all images ***")
     directory = open_directory_chooser()
 
     start = time.time()
-    kaze = True
     print("\n\n---------------")
     print(directory)
-
-
 
     #  get images
     vl_im = [
@@ -276,14 +307,12 @@ if __name__ == "__main__":
 
     data = [vl_im, ir_im, mx_im]
 
-    panos = stitch(data, use_kaze=kaze)  # fast, uses opencv-python from pip
+    panos = stitch(data, use_kaze=True, rem_black=True)  # if the stitch fails try changing kaze to False/True
 
     print("*** CHOOSE save location ***")
     save_location = open_directory_chooser()
-    cv2.imwrite(save_location + "/vl.png", panos[0])
-    cv2.imwrite(save_location + "/ir.png", panos[1])
-    cv2.imwrite(save_location + "/mx.png", panos[2])
-
-
+    cv2.imwrite(save_location + "/vl3.png", panos[0])
+    cv2.imwrite(save_location + "/ir3.png", panos[1])
+    cv2.imwrite(save_location + "/mx3.png", panos[2])
 
     print("total time (secs):", (time.time() - start))
