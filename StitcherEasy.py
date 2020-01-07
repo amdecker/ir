@@ -311,8 +311,8 @@ if __name__ == "__main__":
 
     print("*** CHOOSE save location ***")
     save_location = open_directory_chooser()
-    cv2.imwrite(save_location + "/vl3.png", panos[0])
-    cv2.imwrite(save_location + "/ir3.png", panos[1])
-    cv2.imwrite(save_location + "/mx3.png", panos[2])
+    cv2.imwrite(save_location + "/vl.png", panos[0])
+    cv2.imwrite(save_location + "/ir.png", panos[1])
+    cv2.imwrite(save_location + "/mx.png", panos[2])
 
     print("total time (secs):", (time.time() - start))
