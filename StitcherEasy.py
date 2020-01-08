@@ -289,6 +289,7 @@ if __name__ == "__main__":
     num_imgs = 45
     print("*** SELECT folder containing all images ***")
     directory = open_directory_chooser()
+    pano_num = directory[-14:]
 
     start = time.time()
     print("\n\n---------------")
@@ -311,8 +312,8 @@ if __name__ == "__main__":
 
     print("*** CHOOSE save location ***")
     save_location = open_directory_chooser()
-    cv2.imwrite(save_location + "/vl.png", panos[0])
-    cv2.imwrite(save_location + "/ir.png", panos[1])
-    cv2.imwrite(save_location + "/mx.png", panos[2])
+    cv2.imwrite(save_location + "/{0}-vl.png".format(pano_num), panos[0])
+    cv2.imwrite(save_location + "/{0}-ir.png".format(pano_num), panos[1])
+    cv2.imwrite(save_location + "/{0}-mx.png".format(pano_num), panos[2])
 
     print("total time (secs):", (time.time() - start))
