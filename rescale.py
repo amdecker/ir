@@ -1,3 +1,14 @@
+"""
+author: Amos Decker
+
+Each individual image when taken sets the colors based on the lowest and highest temperature in that frame.
+
+This program standardizes the color/temperature relationship throughout the set of images based on the global low and
+global high
+
+"""
+
+
 import json
 import cv2
 import numpy as np
@@ -30,7 +41,9 @@ class Rescaler:
             self.highest = info["highestTemperatures"]
             self.lowest = info["lowestTemperatures"]
 
-    def rescale_image(self, img_num, global_color_map):
+        self.global_color_map = self.get_global_temp_color_map()
+
+    def rescale_image(self, img_num):
         """
         scales the colors in all images based on the lowest and highest temperature among all the pictures
         :param img_num: 0, 1, 2, ..., n the image number is used to grab the image file and the temperature data
@@ -44,13 +57,12 @@ class Rescaler:
         color_map = self.get_temp_color_map(self.lowest[img_num],
                                             self.highest[img_num])  # gets temperature to color
         local_temps = list(color_map.keys())
-        color_map = swap_dict(color_map)  # gets color to temperature
-        local_colors = list(color_map.keys())
 
         rescaled_image = np.zeros(img.shape)
 
-        # the color map temps and the global temps will not match perfectly...so find closest
-        global_temps = list(global_color_map.keys())
+        # the color map temps and the global temps will not match perfectly...so find closest and match them up
+        global_temps = list(self.global_color_map.keys())
+        adjusted_local_temps = []
         for n in range(len(local_temps)):
             loc_temp = local_temps[n]
             temp_diff = 100000000000000000000000000000000
@@ -60,9 +72,10 @@ class Rescaler:
                 if diff < temp_diff:
                     temp_diff = diff
                     idx_lowest_temp_diff = i
-            local_temps[n] = global_temps[idx_lowest_temp_diff]
+            adjusted_local_temps.append(global_temps[idx_lowest_temp_diff])
+
         # remakes the color map so that the temperatures now match up with the global temperatures
-        color_map = dict(zip(local_colors, local_temps))
+        color_map = dict(zip(self.palette, adjusted_local_temps))  # color to temperature
 
         image_to_map_temp = {}  # the rgb values don't match up perfectly for some reason,
                             # this stores the correspondence with the temperature of the closest color in the map
@@ -87,7 +100,7 @@ class Rescaler:
                 else:
                     temperature = image_to_map_temp[tuple(img[y, x])]
 
-                rescaled_image[y, x] = global_color_map[temperature]
+                rescaled_image[y, x] = self.global_color_map[temperature]
 
         return rescaled_image
 
@@ -98,7 +111,6 @@ class Rescaler:
         :return: dictionary {temperature: [b, g, r], ...}
         """
         return self.get_temp_color_map(min(self.lowest), max(self.highest))
-
 
     def get_temp_color_map(self, low, high):
         """
@@ -119,7 +131,7 @@ def swap_dict(d):
 if __name__ == "__main__":
     num_imgs = 45
     print("*** SELECT folder containing all images ***")
-    directory = open_directory_chooser()
+    directory = open_directory_chooser()  # pop-up file chooser
     pano_num = directory[-14:]
 
     start = time.time()
@@ -129,7 +141,7 @@ if __name__ == "__main__":
     for i in range(num_imgs):
         print(str(i + 1) + "/" + str(num_imgs))
         img_num_str = str(i) if i > 9 else "0" + str(i)
-        all_rescaled.append(r.rescale_image(i, r.get_global_temp_color_map()))
+        all_rescaled.append(r.rescale_image(i))
 
     print("total time:", time.time() - start)
 
