@@ -1,11 +1,10 @@
-"""
-author: Amos Decker
+__author__ = "Amos Decker"
 
+"""
 Each individual image when taken sets the colors based on the lowest and highest temperature in that frame.
 
 This program standardizes the color/temperature relationship throughout the set of images based on the global low and
 global high
-
 """
 
 
@@ -25,15 +24,7 @@ class Rescaler:
         with open("iron.pal") as f:
             self.palette = [tuple([int(y) for y in x.split(",")]) for x in f.read().split()]
             for i in range(len(self.palette)):
-                c = self.palette[i]
-                r = int(c[0] + 1.40200 * (c[1] - 128))
-                g = int(c[0] - 0.34414 * (c[2] - 128) - 0.71414 * (c[1] - 128))
-                b = int(c[0] + 1.77200 * (c[2] - 128))
-                r = max(0, min(255, r))
-                g = max(0, min(255, g))
-                b = max(0, min(255, b))
-
-                self.palette[i] = (b, g, r)  # need to save palette in bgr format, not rgb
+                self.palette[i] = YCbCr_to_bgr(self.palette[i])
 
         # grab temperature extremes
         with open(directory_path + "/info.json") as f:
@@ -43,24 +34,13 @@ class Rescaler:
 
         self.global_color_map = self.get_global_temp_color_map()
 
-    def rescale_image(self, img_num):
+    def match_local_with_global_temps(self, local_temps):
         """
-        scales the colors in all images based on the lowest and highest temperature among all the pictures
-        :param img_num: 0, 1, 2, ..., n the image number is used to grab the image file and the temperature data
-        :param global_color_map: dictionary {temperature: color}. Has the full range of temps among all images
-        :return: the rescaled image
+        the color map temps and the global temps will not match perfectly...so find closest and change local temp
+        to same value as closest global temp
+        :param local_temps: the temperatures from the temperature/color map
+        :return adjusted_local_temps: list of temperatures
         """
-        img_num_str = str(img_num) if img_num > 9 else "0" + str(img_num)
-        img = cv2.imread(self.directory_path + "/ir{0}.png".format(img_num_str))
-
-        # get colors and temperatures separately
-        color_map = self.get_temp_color_map(self.lowest[img_num],
-                                            self.highest[img_num])  # gets temperature to color
-        local_temps = list(color_map.keys())
-
-        rescaled_image = np.zeros(img.shape)
-
-        # the color map temps and the global temps will not match perfectly...so find closest and match them up
         global_temps = list(self.global_color_map.keys())
         adjusted_local_temps = []
         for n in range(len(local_temps)):
@@ -73,29 +53,52 @@ class Rescaler:
                     temp_diff = diff
                     idx_lowest_temp_diff = i
             adjusted_local_temps.append(global_temps[idx_lowest_temp_diff])
+        return adjusted_local_temps
 
+    def match_pixel_with_palette(self, pxl):
+        """
+        the bgr values of the images don't match up perfectly with the .pal file, so return the color in the palette
+        closest to that of the pixel
+        :param pxl: 1x3 array of b, g, r colors
+        :return: tuple of bgr color in the palette
+        """
+        #
+        color_diff = 100000000000000000000000000000000
+        idx_lowest_color_diff = 0
+        for i in range(len(self.palette)):
+            bgr = self.palette[i]
+            diff = abs(bgr[0] - pxl[0]) + abs(bgr[1] - pxl[1]) + abs(bgr[2] - pxl[2])
+            if diff < color_diff:
+                color_diff = diff
+                idx_lowest_color_diff = i
+        return self.palette[idx_lowest_color_diff]
+
+    def rescale_image(self, img_num):
+        """
+        scales the colors in all images based on the lowest and highest temperature among all the pictures
+        :param img_num: 0, 1, 2, ..., n the image number is used to grab the image file and the temperature data
+        :return: the rescaled image
+        """
+        img_num_str = make_double_digit_str(img_num)
+        img = cv2.imread(self.directory_path + "/ir{0}.png".format(img_num_str))
+
+        # get colors and temperatures separately
+        color_map = self.get_temp_color_map(self.lowest[img_num], self.highest[img_num])  # gets temperature to color
+        local_temps = list(color_map.keys())
+        adjusted_local_temps = self.match_local_with_global_temps(local_temps)
         # remakes the color map so that the temperatures now match up with the global temperatures
         color_map = dict(zip(self.palette, adjusted_local_temps))  # color to temperature
 
+        rescaled_image = np.zeros(img.shape)
         image_to_map_temp = {}  # the rgb values don't match up perfectly for some reason,
-                            # this stores the correspondence with the temperature of the closest color in the map
-                            # key is bgr of img, value is temperature of color map
+                                # this stores the correspondence with the temperature of the closest color in the map
+                                # key is bgr of img, value is temperature of color map
+        # for each pixel grab the palette color, convert to temperature, convert to standardized global colors
         for y in range(img.shape[0]):
             for x in range(img.shape[1]):
                 if tuple(img[y, x]) not in image_to_map_temp:
-                    # the rgb values don't match up perfectly for some reason. finds the closest set of rgb
-                    color_diff = 100000000000000000000000000000000
-                    idx_lowest_color_diff = 0
-                    for i in range(len(self.palette)):
-                        rgb = self.palette[i]
-                        diff = abs(rgb[0] - img[y, x][0]) + abs(rgb[1] - img[y, x][1]) + abs(rgb[2] - img[y, x][2])
-                        if diff < color_diff:
-                            color_diff = diff
-                            idx_lowest_color_diff = i
-
-                    palette_color = self.palette[idx_lowest_color_diff]
+                    palette_color = self.match_pixel_with_palette(img[y, x])
                     temperature = color_map[palette_color]
-
                     image_to_map_temp[tuple(img[y, x])] = temperature
                 else:
                     temperature = image_to_map_temp[tuple(img[y, x])]
@@ -128,29 +131,59 @@ def swap_dict(d):
     return dict((v, k) for k, v in d.items())
 
 
-if __name__ == "__main__":
+def make_double_digit_str(num):
+    """
+    useful for file names, turns 9 into "09" but keeps 15 as "15"
+    :param num: one or two digit number
+    :return: two digit number string
+    """
+    return str(num) if num > 9 else "0" + str(num)
+
+
+def YCbCr_to_bgr(c):
+    """
+    converts from color space YCbCr to BGR
+    :param c: tuple of three numbers
+    :return: tuple of (b, g, r)
+    """
+    r = int(c[0] + 1.40200 * (c[1] - 128))
+    g = int(c[0] - 0.34414 * (c[2] - 128) - 0.71414 * (c[1] - 128))
+    b = int(c[0] + 1.77200 * (c[2] - 128))
+    r = max(0, min(255, r))
+    g = max(0, min(255, g))
+    b = max(0, min(255, b))
+    return (b, g, r)
+
+
+def main():
     num_imgs = 45
+
     print("*** SELECT folder containing all images ***")
     directory = open_directory_chooser()  # pop-up file chooser
+    print(directory)
     pano_num = directory[-14:]
 
     start = time.time()
 
-    r = Rescaler("pano-" + pano_num)
+    r = Rescaler(directory)
+    print(r.get_global_temp_color_map())
     all_rescaled = []
     for i in range(num_imgs):
         print(str(i + 1) + "/" + str(num_imgs))
-        img_num_str = str(i) if i > 9 else "0" + str(i)
         all_rescaled.append(r.rescale_image(i))
 
     print("total time:", time.time() - start)
 
-    print("*** CHOOSE save location ***")
+    print("*** CHOOSE save location (a directory called rescaled-[pano num] will be created there) ***")
     save_location = open_directory_chooser()
     if not os.path.isdir(save_location + "/rescaled-" + pano_num):
         os.makedirs(save_location + "/rescaled-" + pano_num)
     for i in range(num_imgs):
-        img_num_str = str(i) if i > 9 else "0" + str(i)
+        img_num_str = make_double_digit_str(i)
         cv2.imwrite(save_location + "/rescaled-{0}/ir{1}.png".format(pano_num, img_num_str), all_rescaled[i])
+
+
+if __name__ == "__main__":
+    main()
 
 

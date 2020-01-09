@@ -1,6 +1,6 @@
-"""
-author: Amos Decker
+__author__ = "Amos Decker"
 
+"""
 A working python stitcher for ir images. Uses visible light images to find the keypoints and do all of the adjustments,
 but then swaps out the visible light images for ir (or mx) images.
 
@@ -284,8 +284,7 @@ def stitch(data, use_kaze=False, rem_black=True):
     return final_panos
 
 
-if __name__ == "__main__":
-    # did some testing with pano-20190724114828
+def main():
     num_imgs = 45
     print("*** SELECT folder containing all images ***")
     directory = open_directory_chooser()
@@ -317,3 +316,7 @@ if __name__ == "__main__":
     cv2.imwrite(save_location + "/{0}-mx.png".format(pano_num), panos[2])
 
     print("total time (secs):", (time.time() - start))
+
+
+if __name__ == "__main__":
+    main()
