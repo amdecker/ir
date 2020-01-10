@@ -34,7 +34,7 @@ def make_all_palettes():
     """
     for pal in util.PALETTES:
         print(pal)
-        img = cv2.imread("/Users/ccuser/Desktop/AmosDecker/ir/images/20200108142729-ir.png")
+        img = cv2.imread("/Users/ccuser/Desktop/AmosDecker/ir/images/20200108143302-ir.png")
         new_img = util.change_palette(img, pal)
         cv2.imwrite("images/20200108142729-{0}.png".format(pal[:-4]), new_img)
 
@@ -85,8 +85,9 @@ def main():
     #######
     # CHANGE PALETTE (optional)
     ######
-    print("\nCHANGE PALETTE...")
-    panos[-1] = util.change_palette(panos[-1], "lava.pal")
+    if False:
+        print("\nCHANGE PALETTE...")
+        panos[-1] = util.change_palette(panos[-1], "lava.pal")
 
     print("total time:", time.time() - start)
     ######
