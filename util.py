@@ -101,18 +101,21 @@ def palette_to_bgr(filename):
 
 
 def identify_palette(img):
-    #TODO WIP figure out which palette is used by the image
+    """
+    given an image it figures out which palette it uses. NOTE: the colors must match exactly
+    :param img: image to identify the palette of
+    :return: filename of palette e.g. "iron.pal"
+    """
     # convert palette to bgr. originally in YCbCr
-    bgr_palettes = []  # list of all palettes in bgr format
+    bgr_palettes = []
     for p in PALETTES:
         bgr_palettes.append(palette_to_bgr("palettes/" + p))
 
+    # get rid of all palettes that do not have those (b, g, r) values
     bgr_pal_copy = bgr_palettes.copy()
     for y in range(img.shape[0]):
         for x in range(img.shape[1]):
             to_pop = []
-            print(tuple(img[y, x]))
-            exit()
             for pal in bgr_palettes:
                 if tuple(img[y, x]) not in pal:
                     to_pop.append(pal)
@@ -122,6 +125,7 @@ def identify_palette(img):
             found_match = len(bgr_palettes) == 1
             if found_match:
                 return PALETTES[bgr_pal_copy.index(bgr_palettes[0])]
+    return False
 
 
 def match_pixel_with_palette(pxl, palette):
@@ -161,3 +165,53 @@ def set_colors_to_palette(img, palette):
             alt_img[y, x] = px_to_px[tuple(img[y, x])]
 
     return alt_img
+
+
+def change_palette(img, new_palette_name):
+
+    old_palette = palette_to_bgr("palettes/" + identify_palette(img))
+    new_palette = palette_to_bgr("palettes/" + new_palette_name)
+    print(old_palette)
+    print(new_palette)
+    if len(new_palette) != len(old_palette):
+        if len(new_palette) > len(old_palette):
+            old_palette = stretch(old_palette, len(new_palette))
+        else:
+            new_palette = stretch(new_palette, len(old_palette))
+
+    old_to_new = dict(zip(old_palette, new_palette))
+
+    new_img = np.zeros(img.shape)
+    for y in range(img.shape[0]):
+        for x in range(img.shape[1]):
+            new_img[y, x] = old_to_new[tuple(img[y, x])]
+
+    return new_img
+
+
+def stretch(orig, length):
+    """
+    stretches a list to be a certain length and tries to fill it in as evenly as possible
+
+    so with orig as [0, 1, 2] and leng as 5 it would output [0, 0, 1, 1, 2]
+    :param orig: list to be stretched
+    :param length: length of final stretched list
+    :return: list with length leng filled evenly with values from orig
+    """
+    new = [None] * length
+    num_each = round(len(new) / len(orig))
+
+    prev = 0
+    i = 0
+    while num_each * (i + 1) <= length and i < len(orig):
+        new[prev:num_each * (i + 1)] = [orig[i]] * num_each
+        prev = num_each * (i + 1)
+        i += 1
+
+    if new.count(None) > 0:
+        if i >= len(orig):
+            i = len(orig) - 1
+        new[-new.count(None):] = stretch([orig[i]], new.count(None))
+    return new
+
+

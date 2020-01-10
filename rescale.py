@@ -83,7 +83,7 @@ class Rescaler:
                 temperature_image[y, x] = temperature
                 rescaled_image[y, x] = self.global_color_map[temperature]
 
-        return rescaled_image, temperature_image
+        return rescaled_image
 
     def get_global_temp_color_map(self):
         """
@@ -120,7 +120,7 @@ def main():
     all_rescaled = []
     for i in range(num_imgs):
         print(str(i + 1) + "/" + str(num_imgs))
-        all_rescaled.append(r.rescale_image(i)[1])
+        all_rescaled.append(r.rescale_image(i))
 
     print("total time:", time.time() - start)
 
