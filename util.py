@@ -128,7 +128,7 @@ def identify_palette(img):
     return False
 
 
-def match_pixel_with_palette(pxl, palette):
+def get_palette_color_match(pxl, palette):
     """
     the bgr values of the images don't match up perfectly with the .pal file, so return the color in the palette
     closest to that of the pixel
@@ -156,37 +156,16 @@ def set_colors_to_palette(img, palette):
     for y in range(unique_values.shape[0]):
         if y % 1000 == 0:
             print(str(y) + "/" + str(unique_values.shape[0]))
-        px_to_px[tuple(unique_values[y])] = match_pixel_with_palette(unique_values[y], palette)
+        px_to_px[tuple(unique_values[y])] = get_palette_color_match(unique_values[y], palette)
 
     # creates new image using only colors in the palette
     for y in range(img.shape[0]):
-        print(y)
+        if y % 100 == 0:
+            print(str(y) + "/" + str(img.shape[0]))
         for x in range(img.shape[1]):
             alt_img[y, x] = px_to_px[tuple(img[y, x])]
 
     return alt_img
-
-
-def change_palette(img, new_palette_name):
-
-    old_palette = palette_to_bgr("palettes/" + identify_palette(img))
-    new_palette = palette_to_bgr("palettes/" + new_palette_name)
-    print(old_palette)
-    print(new_palette)
-    if len(new_palette) != len(old_palette):
-        if len(new_palette) > len(old_palette):
-            old_palette = stretch(old_palette, len(new_palette))
-        else:
-            new_palette = stretch(new_palette, len(old_palette))
-
-    old_to_new = dict(zip(old_palette, new_palette))
-
-    new_img = np.zeros(img.shape)
-    for y in range(img.shape[0]):
-        for x in range(img.shape[1]):
-            new_img[y, x] = old_to_new[tuple(img[y, x])]
-
-    return new_img
 
 
 def stretch(orig, length):
@@ -214,4 +193,30 @@ def stretch(orig, length):
         new[-new.count(None):] = stretch([orig[i]], new.count(None))
     return new
 
+
+def change_palette(img, new_palette_name):
+    """
+    given an image that only contains colors from one palette, change it to the colors of another palette
+    :param img: image that you want to change the palette of
+    :param new_palette_name: the palette you want to new image to follow
+    :return: an image that follows the new palette
+    """
+    old_palette = palette_to_bgr("palettes/" + identify_palette(img))
+    new_palette = palette_to_bgr("palettes/" + new_palette_name)
+
+    # if the sizes don't match up stretch one of them
+    if len(new_palette) != len(old_palette):
+        if len(new_palette) > len(old_palette):
+            old_palette = stretch(old_palette, len(new_palette))
+        else:
+            new_palette = stretch(new_palette, len(old_palette))
+
+    old_to_new = dict(zip(old_palette, new_palette))
+
+    new_img = np.zeros(img.shape)
+    for y in range(img.shape[0]):
+        for x in range(img.shape[1]):
+            new_img[y, x] = old_to_new[tuple(img[y, x])]
+
+    return new_img
 
