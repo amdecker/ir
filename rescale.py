@@ -14,18 +14,15 @@ import numpy as np
 import time
 import os
 from StitcherEasy import open_directory_chooser
-from util import YCbCr_to_bgr, make_double_digit_str, swap_dict
+from util import make_double_digit_str, palette_to_bgr, match_pixel_with_palette
 
 
 class Rescaler:
-    def __init__(self, directory_path):
+    def __init__(self, directory_path, palette="palettes/iron.pal"):
         self.directory_path = directory_path
 
         # convert palette to bgr. originally in YCbCr
-        with open("palettes/iron.pal") as f:
-            self.palette = [tuple([int(y) for y in x.split(",")]) for x in f.read().split()]
-            for i in range(len(self.palette)):
-                self.palette[i] = YCbCr_to_bgr(self.palette[i])
+        self.palette = palette_to_bgr(palette)
 
         # grab temperature extremes
         with open(directory_path + "/info.json") as f:
@@ -42,37 +39,15 @@ class Rescaler:
         :param local_temps: the temperatures from the temperature/color map
         :return adjusted_local_temps: list of temperatures
         """
-        global_temps = list(self.global_color_map.keys())
+        global_temps = np.array(list(self.global_color_map.keys()))
         adjusted_local_temps = []
         for n in range(len(local_temps)):
             loc_temp = local_temps[n]
-            temp_diff = 100000000000000000000000000000000
-            idx_lowest_temp_diff = 0
-            for i in range(len(global_temps)):
-                diff = abs(global_temps[i] - loc_temp)
-                if diff < temp_diff:
-                    temp_diff = diff
-                    idx_lowest_temp_diff = i
-            adjusted_local_temps.append(global_temps[idx_lowest_temp_diff])
+            differences = abs(global_temps - loc_temp)  # how different the temps are
+            idx = np.where(differences == np.amin(differences))[0][0]  # get index of closest temp
+            adjusted_local_temps.append(global_temps[idx])
         return adjusted_local_temps
 
-    def match_pixel_with_palette(self, pxl):
-        """
-        the bgr values of the images don't match up perfectly with the .pal file, so return the color in the palette
-        closest to that of the pixel
-        :param pxl: 1x3 array of b, g, r colors
-        :return: tuple of bgr color in the palette
-        """
-        #
-        color_diff = 100000000000000000000000000000000
-        idx_lowest_color_diff = 0
-        for i in range(len(self.palette)):
-            bgr = self.palette[i]
-            diff = abs(bgr[0] - pxl[0]) + abs(bgr[1] - pxl[1]) + abs(bgr[2] - pxl[2])
-            if diff < color_diff:
-                color_diff = diff
-                idx_lowest_color_diff = i
-        return self.palette[idx_lowest_color_diff]
 
     def rescale_image(self, img_num):
         """
@@ -91,6 +66,7 @@ class Rescaler:
         color_map = dict(zip(self.palette, adjusted_local_temps))  # color to temperature
 
         rescaled_image = np.zeros(img.shape)
+        temperature_image = np.zeros(img.shape)
         image_to_map_temp = {}  # the rgb values don't match up perfectly for some reason,
                                 # this stores the correspondence with the temperature of the closest color in the map
                                 # key is bgr of img, value is temperature of color map
@@ -98,15 +74,16 @@ class Rescaler:
         for y in range(img.shape[0]):
             for x in range(img.shape[1]):
                 if tuple(img[y, x]) not in image_to_map_temp:
-                    palette_color = self.match_pixel_with_palette(img[y, x])
+                    palette_color = match_pixel_with_palette(img[y, x], self.palette)
                     temperature = color_map[palette_color]
                     image_to_map_temp[tuple(img[y, x])] = temperature
                 else:
                     temperature = image_to_map_temp[tuple(img[y, x])]
 
+                temperature_image[y, x] = temperature
                 rescaled_image[y, x] = self.global_color_map[temperature]
 
-        return rescaled_image
+        return rescaled_image, temperature_image
 
     def get_global_temp_color_map(self):
         """
@@ -131,7 +108,8 @@ def main():
     num_imgs = 45
 
     print("*** SELECT folder containing all images ***")
-    directory = open_directory_chooser()  # pop-up file chooser
+    # directory = open_directory_chooser()  # pop-up file chooser
+    directory = "/Users/ccuser/Desktop/AmosDecker/ir/images/pano-20200109115026"
     print(directory)
     pano_num = directory[-14:]
 
@@ -142,7 +120,7 @@ def main():
     all_rescaled = []
     for i in range(num_imgs):
         print(str(i + 1) + "/" + str(num_imgs))
-        all_rescaled.append(r.rescale_image(i))
+        all_rescaled.append(r.rescale_image(i)[1])
 
     print("total time:", time.time() - start)
 

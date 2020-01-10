@@ -10,6 +10,9 @@ various helpful tools used in StitcherEasy and rescale
 
 from tkinter import Tk
 from tkinter.filedialog import askdirectory
+import numpy as np
+
+PALETTES = ["arctic.pal", "coldest.pal", "contrast.pal", "gray.pal", "hottest.pal", "iron.pal", "lava.pal", "rainbow.pal", "wheel.pal"]
 
 
 def open_directory_chooser():
@@ -82,3 +85,79 @@ def YCbCr_to_bgr(c):
     g = max(0, min(255, g))
     b = max(0, min(255, b))
     return (b, g, r)
+
+
+def palette_to_bgr(filename):
+    """
+    gets list of tuple of (b, g, r) values for each color in palette
+    :param filename: path to .pal file
+    :return: list of tuple of (b, g, r)
+    """
+    with open(filename) as f:
+        palette = [tuple([int(y) for y in x.split(",")]) for x in f.read().split("\n")]
+        for i in range(len(palette)):
+            palette[i] = YCbCr_to_bgr(palette[i])
+    return palette
+
+
+def identify_palette(img):
+    #TODO WIP figure out which palette is used by the image
+    # convert palette to bgr. originally in YCbCr
+    bgr_palettes = []  # list of all palettes in bgr format
+    for p in PALETTES:
+        bgr_palettes.append(palette_to_bgr("palettes/" + p))
+
+    bgr_pal_copy = bgr_palettes.copy()
+    for y in range(img.shape[0]):
+        for x in range(img.shape[1]):
+            to_pop = []
+            print(tuple(img[y, x]))
+            exit()
+            for pal in bgr_palettes:
+                if tuple(img[y, x]) not in pal:
+                    to_pop.append(pal)
+            for pal in to_pop:
+                bgr_palettes.pop(bgr_palettes.index(pal))
+
+            found_match = len(bgr_palettes) == 1
+            if found_match:
+                return PALETTES[bgr_pal_copy.index(bgr_palettes[0])]
+
+
+def match_pixel_with_palette(pxl, palette):
+    """
+    the bgr values of the images don't match up perfectly with the .pal file, so return the color in the palette
+    closest to that of the pixel
+    :param pxl: 1x3 array of b, g, r colors
+    :param palette: output of palette_to_bgr()
+    :return: tuple of bgr color in the palette
+    """
+    differences = np.sum(abs(palette - pxl), axis=1)  # how different the colors are
+    idx = np.where(differences == np.amin(differences))[0][0]  # get index of closest color
+    return palette[idx]
+
+
+def set_colors_to_palette(img, palette):
+    """
+    takes in an image and changes the colors so they match exactly with the given palette
+    :param img:
+    :param palette: output of palette_to_bgr()
+    :return:
+    """
+    alt_img = np.zeros(img.shape)
+    px_to_px = {}  # keeps track of the mapping between original color and new color
+    unique_values = np.unique(np.concatenate([np.unique(img[i], axis=0) for i in range(img.shape[0])], axis=0), axis=0)
+
+    # maps original value to closest palette value
+    for y in range(unique_values.shape[0]):
+        if y % 1000 == 0:
+            print(str(y) + "/" + str(unique_values.shape[0]))
+        px_to_px[tuple(unique_values[y])] = match_pixel_with_palette(unique_values[y], palette)
+
+    # creates new image using only colors in the palette
+    for y in range(img.shape[0]):
+        print(y)
+        for x in range(img.shape[1]):
+            alt_img[y, x] = px_to_px[tuple(img[y, x])]
+
+    return alt_img

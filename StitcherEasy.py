@@ -17,7 +17,7 @@ import time
 from util import open_directory_chooser, remove_black
 
 
-def stitch(data, use_kaze=False, rem_black=True):
+def stitch(data, use_kaze=False):
     """same as stitch_fast() in Stitcher.py"""
     final_panos = []
 
@@ -234,16 +234,15 @@ def stitch(data, use_kaze=False, rem_black=True):
         print("blending...")
         result, result_mask = blender.blend(result, result_mask)
         print("SIZE:", result.shape)
-
-        # optionally remove the black border from the images
-        if rem_black:
-            result = remove_black(result)
         final_panos.append(result)
+
     return final_panos
 
 
 def main():
-    num_imgs = 45
+    NUM_IMGS = 45
+    REMOVE_BLACK = True
+
     print("*** SELECT folder containing all images ***")
     directory = open_directory_chooser()
     pano_num = directory[-14:]
@@ -255,17 +254,21 @@ def main():
     #  get images
     vl_im = [
         cv2.imread(directory + "/vl{0}.png".format(i)) if i > 9 else cv2.imread(directory + "/vl0{0}.png".format(i)) for
-        i in range(num_imgs)]
+        i in range(NUM_IMGS)]
     ir_im = [
         cv2.imread(directory + "/ir{0}.png".format(i)) if i > 9 else cv2.imread(directory + "/ir0{0}.png".format(i)) for
-        i in range(num_imgs)]
+        i in range(NUM_IMGS)]
     mx_im = [
         cv2.imread(directory + "/mx{0}.png".format(i)) if i > 9 else cv2.imread(directory + "/mx0{0}.png".format(i)) for
-        i in range(num_imgs)]
+        i in range(NUM_IMGS)]
 
     data = [vl_im, ir_im, mx_im]
 
-    panos = stitch(data, use_kaze=True, rem_black=True)  # if the stitch fails try changing kaze to False/True
+    panos = stitch(data, use_kaze=True)  # if the stitch fails try changing kaze to False/True
+    # get rid of black border
+    if REMOVE_BLACK:
+        for p in range(len(panos)):
+            panos[p] = remove_black(panos[p])
 
     print("*** CHOOSE save location ***")
     save_location = open_directory_chooser()
