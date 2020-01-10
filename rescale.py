@@ -1,4 +1,5 @@
 __author__ = "Amos Decker"
+__date__ = "January 2020"
 
 """
 Each individual image when taken sets the colors based on the lowest and highest temperature in that frame.
@@ -7,13 +8,13 @@ This program standardizes the color/temperature relationship throughout the set 
 global high
 """
 
-
 import json
 import cv2
 import numpy as np
 import time
 import os
 from StitcherEasy import open_directory_chooser
+from util import YCbCr_to_bgr, make_double_digit_str, swap_dict
 
 
 class Rescaler:
@@ -21,7 +22,7 @@ class Rescaler:
         self.directory_path = directory_path
 
         # convert palette to bgr. originally in YCbCr
-        with open("iron.pal") as f:
+        with open("palettes/iron.pal") as f:
             self.palette = [tuple([int(y) for y in x.split(",")]) for x in f.read().split()]
             for i in range(len(self.palette)):
                 self.palette[i] = YCbCr_to_bgr(self.palette[i])
@@ -124,35 +125,6 @@ class Rescaler:
         """
         step_size = (high - low) / (len(self.palette) - 1)
         return dict(zip([low + i * step_size for i in range(len(self.palette))], self.palette))
-
-
-def swap_dict(d):
-    """switches keys with values in a dictionary"""
-    return dict((v, k) for k, v in d.items())
-
-
-def make_double_digit_str(num):
-    """
-    useful for file names, turns 9 into "09" but keeps 15 as "15"
-    :param num: one or two digit number
-    :return: two digit number string
-    """
-    return str(num) if num > 9 else "0" + str(num)
-
-
-def YCbCr_to_bgr(c):
-    """
-    converts from color space YCbCr to BGR
-    :param c: tuple of three numbers
-    :return: tuple of (b, g, r)
-    """
-    r = int(c[0] + 1.40200 * (c[1] - 128))
-    g = int(c[0] - 0.34414 * (c[2] - 128) - 0.71414 * (c[1] - 128))
-    b = int(c[0] + 1.77200 * (c[2] - 128))
-    r = max(0, min(255, r))
-    g = max(0, min(255, g))
-    b = max(0, min(255, b))
-    return (b, g, r)
 
 
 def main():

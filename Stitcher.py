@@ -1,12 +1,7 @@
-import numpy as np
-import cv2
-import time
-import os
-from datetime import datetime
+__author__ = "Amos Decker"
+__date__ = "Summer 2019"
 
 """
-author: Amos Decker
-
 A working python stitcher for ir images. Uses visible light images to find the keypoints and do all of the adjustments,
 but then swaps out the visible light images for ir (or mx) images.
 
@@ -16,6 +11,12 @@ https://raw.githubusercontent.com/opencv/opencv/master/samples/cpp/stitching_det
 
 stitch() relies on a modified opencv that can be found here: https://drive.google.com/drive/folders/1m4QldXdOSNnNFJIXDueIMOLjRZhhL6Ji?usp=sharing
 """
+
+import numpy as np
+import cv2
+import time
+import os
+from datetime import datetime
 
 
 def stitch_fast(data, use_kaze=False):
