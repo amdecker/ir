@@ -14,7 +14,8 @@ https://raw.githubusercontent.com/opencv/opencv/master/samples/cpp/stitching_det
 import cv2
 import numpy as np
 import time
-from util import open_directory_chooser, remove_black
+from util import open_directory_chooser
+from Image import Image
 
 
 def stitch(data, use_kaze=False):
@@ -268,7 +269,9 @@ def main():
     # get rid of black border
     if REMOVE_BLACK:
         for p in range(len(panos)):
-            panos[p] = remove_black(panos[p])
+            im = Image(panos[p])
+            im.remove_black()
+            panos[p] = im.img
 
     print("*** CHOOSE save location ***")
     save_location = open_directory_chooser()

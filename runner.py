@@ -13,6 +13,8 @@ from rescale import Rescaler
 import util
 import cv2
 import StitcherEasy
+from Image import Image
+
 
 
 def get_images(directory, type, NUM_IMGS):
@@ -35,8 +37,7 @@ def make_all_palettes():
     for pal in util.PALETTES:
         print(pal)
         img = cv2.imread("/Users/ccuser/Desktop/AmosDecker/ir/images/20200108143302-ir.png")
-        new_img = util.change_palette(img, pal)
-        cv2.imwrite("images/20200108142729-{0}.png".format(pal[:-4]), new_img)
+        cv2.imwrite("images/20200108143302-{0}.png".format(pal[:-4]), Image(img).change_palette(pal).img)
 
 
 def main():
@@ -73,32 +74,35 @@ def main():
     # get rid of black border
     if REMOVE_BLACK:
         for p in range(len(panos)):
-            panos[p] = util.remove_black(panos[p])
+            im = Image(panos[p])
+            im.remove_black()
+            panos[p] = im.img
 
+    ir_pano = Image(panos[-1])
     #######
     # CHANGE ir pano to match colors in the palette (the stitching process changes pixel data slightly, this corrects that)
     #######
     print("\nMATCH PALETTE...")
-    panos[-1] = util.set_colors_to_palette(panos[-1], util.palette_to_bgr("palettes/" + INIT_PALETTE))
+    ir_pano.set_colors_to_palette(util.palette_to_bgr("palettes/" + INIT_PALETTE))
 
 
     #######
     # CHANGE PALETTE (optional)
     ######
-    if False:
+    if True:
         print("\nCHANGE PALETTE...")
-        panos[-1] = util.change_palette(panos[-1], "lava.pal")
+        ir_pano.change_palette("lava.pal")
 
     print("total time:", time.time() - start)
     ######
     # SAVE panos
     ######
     print("\nSAVING...")
+    panos[-1] = ir_pano.img
     save_directory = "images"  # util.open_directory_chooser()
     cv2.imwrite(save_directory + "/" + pano_num + "-vl.png", panos[0])
     cv2.imwrite(save_directory + "/" + pano_num + "-mx.png", panos[1])
     cv2.imwrite(save_directory + "/" + pano_num + "-ir.png", panos[2])
-
 
 
 if __name__ == "__main__":
