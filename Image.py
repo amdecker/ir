@@ -93,7 +93,7 @@ class Image:
     def remove_black(self):
         """
         removes the black border on the tops and bottoms of images
-        :return: cropped image
+        :return: rows of upper limit and lower limit of the image
         """
         BLACK = np.zeros((1, 3))
 
@@ -117,6 +117,7 @@ class Image:
                 else:
                     break
         self.img = self.img[upper_limit:lower_limit, :]
+        return upper_limit, lower_limit
 
     def get_blurred(self):
         """returns a blurred version of the image"""
@@ -178,6 +179,16 @@ def create_mx(vl, ir):
                                 cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 3, 1)
     with_black = cv2.bitwise_and(ir, ir, mask=mask)
     return cv2.addWeighted(with_black, .4, ir, .6, 0)
+
+
+def create_mx2(vl, ir):
+    """
+    creates a mixed infrared-visible light image that DOES NOT preserve the colors of the infrared image
+    :param vl: visible light image of same scene as ir
+    :param ir: infrared image of same scene as vl
+    :return: the mixed image
+    """
+    return cv2.addWeighted(vl, .2, ir, .8, 0)
 
 
 
