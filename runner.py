@@ -14,7 +14,7 @@ import util
 import cv2
 import StitcherEasy
 import Image
-
+import numpy as np
 
 def get_images(directory, type, NUM_IMGS):
     """
@@ -50,7 +50,7 @@ def main():
     start = time.time()
 
     #######
-    # RESCALE individual images
+    # RESCALE images -- makes the colors that you see represent the same temperatures across all images
     #######
     print("\nRESCALE...")
     r = Rescaler(directory)
@@ -70,14 +70,18 @@ def main():
     images_to_stitch.append(all_rescaled)
 
     panos = StitcherEasy.stitch(images_to_stitch, use_kaze=True)  # if the stitch fails try changing kaze to False/True
+
+    for i in range(len(panos)):
+        panos[i] = panos[i].astype(np.uint8)  # uint8 is same type as when you read img from a file
+
     # get rid of black border
     if REMOVE_BLACK:
         # the ir image wont ever have black pixels other than the border to get rid of so just get limits for that one
         im = Image.Image(panos[-1])
         upper_limit, lower_limit = im.remove_black()
         panos[-1] = im.img
-        for p in range(len(panos) - 1):
-            panos[p] = panos[p][upper_limit:lower_limit, :]
+        for i in range(len(panos) - 1):
+            panos[i] = panos[i][upper_limit:lower_limit, :]
 
     ir_pano = Image.Image(panos[-1])
     #######

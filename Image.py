@@ -15,11 +15,13 @@ class Image:
     def change_palette(self, new_palette_name):
         """
         given an image that only contains colors from one palette, change it to the colors of another palette
-        :param new_palette_name: the palette you want to new image to follow
+        :param new_palette_name: the palette you want to new image to follow like "lava.pal"
         :return: an image that follows the new palette
         """
-        old_palette = util.palette_to_bgr("palettes/" + self.identify_palette())
-        new_palette = util.palette_to_bgr("palettes/" + new_palette_name)
+
+        # covert to set then back to list to remove any duplicate colors
+        old_palette = list(set(util.palette_to_bgr("palettes/" + self.identify_palette())))
+        new_palette = list(set(util.palette_to_bgr("palettes/" + new_palette_name)))
 
         # if the sizes don't match up stretch one of them
         if len(new_palette) != len(old_palette):

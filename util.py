@@ -100,10 +100,11 @@ def stretch_list(orig, new_length):
         prev = num_each * (i + 1)
         i += 1
 
-    if new.count(None) > 0:
+    numNone = new.count(None)
+    if numNone > 0:
         if i >= len(orig):
             i = len(orig) - 1
-        new[-new.count(None):] = stretch_list([orig[i]], new.count(None))
+        new[-numNone:] = stretch_list([orig[i]], numNone)
     return new
 
 
