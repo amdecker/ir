@@ -35,7 +35,7 @@ def make_all_palettes():
     """
     for pal in util.PALETTES:
         print(pal)
-        img = cv2.imread("/Users/ccuser/Desktop/AmosDecker/ir/images/20200108143302-ir.png")
+        img = cv2.imread("/Users/ccuser/Desktop/AmosDecker/ir/images/cool_messup.png")
         cv2.imwrite("images/20200108143302-{0}.png".format(pal[:-4]), Image.Image(img).change_palette(pal).img)
 
 

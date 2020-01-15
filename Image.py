@@ -19,9 +19,8 @@ class Image:
         :return: an image that follows the new palette
         """
 
-        # covert to set then back to list to remove any duplicate colors
-        old_palette = list(set(util.palette_to_bgr("palettes/" + self.identify_palette())))
-        new_palette = list(set(util.palette_to_bgr("palettes/" + new_palette_name)))
+        old_palette = util.palette_to_bgr("palettes/" + self.identify_palette())
+        new_palette = util.palette_to_bgr("palettes/" + new_palette_name)
 
         # if the sizes don't match up stretch one of them
         if len(new_palette) != len(old_palette):
