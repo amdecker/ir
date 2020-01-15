@@ -103,26 +103,6 @@ function changePalette() {
     console.log("DONE!");
 }
 /**
- * removes duplicate elements from an array
- * @param arr
- */
-function removeDuplicates(arr) {
-    var noDup = [];
-    for (var i = 0; i < arr.length; i++) {
-        var shouldAdd = true;
-        for (var n = 0; n < noDup.length; n++) {
-            if (arr[i] == noDup[n]) {
-                shouldAdd = false;
-                break;
-            }
-        }
-        if (shouldAdd) {
-            noDup.push(arr[i]);
-        }
-    }
-    return noDup;
-}
-/**
  * matches each value from each list in an object
  * so [1, 2, 3] and [4, 5, 6] --> {1:4, 2:5, 3:6}
  * @param arr0 - keys
@@ -231,10 +211,13 @@ function getIndexIn2D(arr2d, arr1d) {
     }
     return -1;
 }
+/**
+ * gets temperature of click location on canvas
+ * @param event - click event
+ */
 function getTemperature(event) {
     var elemLeft = canvas.offsetLeft;
     var elemTop = canvas.offsetTop;
-    console.log((event.pageX - elemLeft) + ", " + (event.pageY - elemTop));
     var lowTemps = [-29.660003662109375, -17.569992065429688, -33.94999694824219, -35.19000244140625, -38.3800048828125, -39.08000183105469, -38.50999450683594, -52.92999267578125, -56.56999206542969, -57.19999694824219, -56.839996337890625, -56.92999267578125, -54.709991455078125, -57.92999267578125, -58.959991455078125, -57.839996337890625, -57.28999328613281, -56.56999206542969, -56.38999938964844, -44.660003662109375, -41.029998779296875, -41.029998779296875, -41.100006103515625, -49.86000061035156, -50.17999267578125, -50.17999267578125, -49.709991455078125, -49.00999450683594, -48.470001220703125, -37.94000244140625, -23.089996337890625, -14.209991455078125, -14.1199951171875, -13.8599853515625, -13.69000244140625, -13.089996337890625, -29.819992065429688, -45.00999450683594, -46.75, -49.709991455078125, -49.470001220703125, -49.399993896484375, -48.86000061035156, -48.399993896484375, -47.1199951171875];
     var highTemps = [5.1199951171875, 5.1199951171875, 5.04998779296875, 6.1300048828125, 7.519989013671875, 7.260009765625, 6.660003662109375, 5.92999267578125, 5.589996337890625, 5.8599853515625, 4.980010986328125, 4.850006103515625, 1.660003662109375, 1.8699951171875, 2.010009765625, 3.269989013671875, 3.410003662109375, 3.480010986328125, 4.779998779296875, 5.92999267578125, 5.589996337890625, 5.19000244140625, 1.79998779296875, 1.8699951171875, 2.079986572265625, 1.730010986328125, 1.79998779296875, 0.670013427734375, 3.480010986328125, 3.54998779296875, 3.75, 4.100006103515625, 4.160003662109375, 4.910003662109375, 5.04998779296875, 4.29998779296875, 4.44000244140625, 2.149993896484375, 2.230010986328125, 2.709991455078125, 3.82000732421875, 3.8900146484375, 4.850006103515625, 4.850006103515625, 4.850006103515625];
     var lowestTemp = Math.min.apply(Math, lowTemps);
@@ -243,11 +226,13 @@ function getTemperature(event) {
     console.log(currentPixel);
     var pal = rainbowPalette.slice();
     var percentage = -1;
+    // find color in palette that matches color of click location
     for (var i = 0; i < pal.length; i++) {
         if (YCbCrTorgb(pal[i]).toString() == currentPixel) {
             percentage = i / pal.length;
             break;
         }
     }
-    console.log("Temperature: " + (lowestTemp + ((highestTemp - lowestTemp) * percentage)));
+    var temp = (lowestTemp + ((highestTemp - lowestTemp) * percentage));
+    document.getElementById("text").innerText = "Temperature: " + temp;
 }

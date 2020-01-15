@@ -75,7 +75,9 @@ function changePalette()
 {
     nextPalNum %= 9;
     let currPalNum:string = identifyPalette(img2, ctx2);
+    document.getElementById("text").innerText = "changed palette from " + currPalNum + " to " + nextPalNum + "...";
     console.log("changing palette from " + currPalNum + " to " + nextPalNum + "...");
+
     let oldPal:number[][] = numToPal[currPalNum].slice();
     let newPal:number[][] = numToPal[nextPalNum].slice();
     nextPalNum++;
@@ -260,7 +262,7 @@ function getIndexIn2D(arr2d, arr1d)
 
 
 /**
- * prints temperature to console of click location on canvas
+ * gets temperature of click location on canvas
  * @param event - click event
  */
 function getTemperature(event)
@@ -289,5 +291,6 @@ function getTemperature(event)
 
     }
     let temp:number = (lowestTemp + ((highestTemp - lowestTemp) * percentage));
+    document.getElementById("text").innerText = "Temperature: " + temp;
     console.log("Temperature: " + temp);
 }
