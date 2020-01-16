@@ -74,9 +74,11 @@ function changePalette()
 {
     nextPalNum %= 9;
     let currPalNum:string = identifyPalette(img2, ctx2);
+
     document.getElementById("text").innerText = "changed palette from " + currPalNum + " to " + nextPalNum + "...";
     console.log("changing palette from " + currPalNum + " to " + nextPalNum + "...");
 
+    // put the palettes into rgb
     let oldPal:number[][] = numToPal[currPalNum].slice();
     let newPal:number[][] = numToPal[nextPalNum].slice();
     nextPalNum++;
@@ -96,24 +98,22 @@ function changePalette()
         else {newPal = stretchArray(newPal, oldPal.length);}
     }
 
+    // creates key/value pairs from old to new
     let oldToNew: object = createObjectFromArrays(oldPal, newPal);
 
     // change the pixels
-    let imgData1D:number[] = ctx2.getImageData(0, 0, img2.width, img2.height).data;
-    console.log(imgData1D.length);
-    let imgData:number[] = [];
+    let oldImageData:number[] = ctx2.getImageData(0, 0, img2.width, img2.height).data;
+    let newImageData:number[] = [];
     const lengthOnePxData = 4; // r, g, b, a
     const lenthOnePxNoAlpha = 3; // r, g, b
 
-    for(let i:number = 0, len:number = imgData1D.length; i < len; i += lengthOnePxData)
+    for(let i:number = 0, len:number = oldImageData.length; i < len; i += lengthOnePxData)
     {
-        let currentPxData:string = imgData1D.slice(i, i + lenthOnePxNoAlpha).toString();
-        imgData.push(...oldToNew[currentPxData]);
-        imgData.push(255); // add the alpha back in
+        let currentPxData:string = oldImageData.slice(i, i + lenthOnePxNoAlpha).toString();
+        newImageData.push(...oldToNew[currentPxData]);
+        newImageData.push(255); // add the alpha back in
     }
-    ctx.putImageData(new ImageData(new Uint8ClampedArray(imgData), img.width), 0, 0);
-
-    console.log("DONE!");
+    ctx.putImageData(new ImageData(new Uint8ClampedArray(newImageData), img.width), 0, 0);
 }
 
 /**
@@ -273,7 +273,7 @@ function getTemperature(event)
     const lowestTemp = Math.min(...lowTemps);
     const highestTemp = Math.max(...highTemps);
 
-    let currentPixel:string = ctx2.getImageData(event.pageX - elemLeft, event.pageY - elemTop, 1, 1).data.slice(0, 3).toString();
+    let currentPixel:number[] = ctx2.getImageData(event.pageX - elemLeft, event.pageY - elemTop, 1, 1).data.slice(0, 3);
     console.log(currentPixel);
     let pal:number[][] = rainbowPalette.slice();
     let percentage:number = -1;
@@ -281,7 +281,7 @@ function getTemperature(event)
     // find color in palette that matches color of click location
     for(let i:number = 0; i < pal.length; i++)
     {
-        if(YCbCrTorgb(pal[i]).toString() == currentPixel)
+        if(YCbCrTorgb(pal[i]) == currentPixel)
         {
             percentage = i / pal.length;
             break;
