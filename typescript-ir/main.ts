@@ -273,7 +273,7 @@ function getTemperature(event)
     const lowestTemp = Math.min(...lowTemps);
     const highestTemp = Math.max(...highTemps);
 
-    let currentPixel:number[] = ctx2.getImageData(event.pageX - elemLeft, event.pageY - elemTop, 1, 1).data.slice(0, 3);
+    let currentPixel:string = ctx2.getImageData(event.pageX - elemLeft, event.pageY - elemTop, 1, 1).data.slice(0, 3).toString();
     console.log(currentPixel);
     let pal:number[][] = rainbowPalette.slice();
     let percentage:number = -1;
@@ -281,7 +281,7 @@ function getTemperature(event)
     // find color in palette that matches color of click location
     for(let i:number = 0; i < pal.length; i++)
     {
-        if(YCbCrTorgb(pal[i]) == currentPixel)
+        if(YCbCrTorgb(pal[i]).toString() == currentPixel)
         {
             percentage = i / pal.length;
             break;
