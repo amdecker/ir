@@ -12,7 +12,6 @@ class Image:
         self.edges = None
         self.contours = None
 
-
     def change_palette(self, new_palette_name):
         """
         given an image that only contains colors from one palette, change it to the colors of another palette
@@ -31,39 +30,28 @@ class Image:
                 new_palette = util.stretch_list(new_palette, len(old_palette))
 
         old_to_new = dict(zip(old_palette, new_palette))
-        new_img = np.zeros(self.img.shape)
 
         for i in range(self.img.shape[0]):
             row = self.img[i]
-            new_img[i] = util.replace(row, old_to_new)
-
-        self.img = new_img
+            self.img[i] = util.replace(row, old_to_new)
 
     def set_colors_to_palette(self, palette):
         """
-        takes in an image and changes the colors so they match exactly with the given palette
+        takes in an image that is similar to colors of palette and changes the colors so they match exactly with the
+        given palette. The stitching process changing pixels slightly and this function corrects that
         :param palette: output of palette_to_bgr()
-        :return:
         """
-        alt_img = np.zeros(self.img.shape)
-        px_to_px = {}  # keeps track of the mapping between original color and new color
-        unique_values = np.unique(np.concatenate([np.unique(self.img[i], axis=0) for i in range(self.img.shape[0])], axis=0),
-                                  axis=0)
-
-        # maps original value to closest palette value
+        # flatten image into 2d array then find unique values
+        unique_values, inv = np.unique(
+            self.img.reshape(self.img.shape[0] * self.img.shape[1], self.img.shape[2]),
+            axis=0, return_inverse=True)
+        # get pixel matches
         for y in range(unique_values.shape[0]):
             if y % 1000 == 0:
                 print(str(y) + "/" + str(unique_values.shape[0]))
-            px_to_px[tuple(unique_values[y])] = util.get_palette_color_match(unique_values[y], palette)
+            unique_values[y] = util.get_palette_color_match(unique_values[y], palette)
 
-        # creates new image using only colors in the palette
-        for y in range(self.img.shape[0]):
-            if y % 100 == 0:
-                print(str(y) + "/" + str(self.img.shape[0]))
-            for x in range(self.img.shape[1]):
-                alt_img[y, x] = px_to_px[tuple(self.img[y, x])]
-
-        self.img = alt_img
+        self.img = unique_values[inv].reshape(self.img.shape)  # recreate original image shape with the changed colors
 
     def identify_palette(self):
         """

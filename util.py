@@ -114,6 +114,8 @@ def replace(arr, dict):
 
     example: arr = [[1, 2, 3], [1, 2, 3], [4, 5, 6]] and dict = {(1, 2, 3): (0, 0, 0), (4, 5, 6):(1, 1, 1)}
             gives [[0, 0, 0], [0, 0, 0], [1, 1, 1]]
+
+    thanks to https://stackoverflow.com/a/16992881 for this solution
     :param arr: a 2-D array
     :param dict: keys must contain all values in arr
     :return: new np array with same shape as arr
