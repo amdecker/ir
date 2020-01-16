@@ -108,3 +108,18 @@ def stretch_list(orig, new_length):
     return new
 
 
+def replace(arr, dict):
+    """
+    replaces values in 2d array according to dictionary
+
+    example: arr = [[1, 2, 3], [1, 2, 3], [4, 5, 6]] and dict = {(1, 2, 3): (0, 0, 0), (4, 5, 6):(1, 1, 1)}
+            gives [[0, 0, 0], [0, 0, 0], [1, 1, 1]]
+    :param arr: a 2-D array
+    :param dict: keys must contain all values in arr
+    :return: new np array with same shape as arr
+    """
+    u, inv = np.unique(arr, return_inverse=True,
+                       axis=0)  # inv gives back indices allowing reconstruction of original array from unique elements
+    return np.array([dict[tuple(x)] for x in u])[inv].reshape(arr.shape)
+
+

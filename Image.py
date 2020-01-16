@@ -12,6 +12,7 @@ class Image:
         self.edges = None
         self.contours = None
 
+
     def change_palette(self, new_palette_name):
         """
         given an image that only contains colors from one palette, change it to the colors of another palette
@@ -30,11 +31,11 @@ class Image:
                 new_palette = util.stretch_list(new_palette, len(old_palette))
 
         old_to_new = dict(zip(old_palette, new_palette))
-
         new_img = np.zeros(self.img.shape)
-        for y in range(self.img.shape[0]):
-            for x in range(self.img.shape[1]):
-                new_img[y, x] = old_to_new[tuple(self.img[y, x])]
+
+        for i in range(self.img.shape[0]):
+            row = self.img[i]
+            new_img[i] = util.replace(row, old_to_new)
 
         self.img = new_img
 
