@@ -68,6 +68,7 @@ function YCbCrTorgb(c) {
 function changePalette() {
     nextPalNum %= 9;
     var currPalNum = identifyPalette(img2, ctx2);
+    document.getElementById("text").innerText = "changed palette from " + currPalNum + " to " + nextPalNum + "...";
     console.log("changing palette from " + currPalNum + " to " + nextPalNum + "...");
     var oldPal = numToPal[currPalNum].slice();
     var newPal = numToPal[nextPalNum].slice();
@@ -89,17 +90,17 @@ function changePalette() {
     }
     var oldToNew = createObjectFromArrays(oldPal, newPal);
     // change the pixels
-    for (var x = 0; x < img.width; x++) {
-        for (var y = 0; y < img.height; y++) {
-            var imgData = ctx2.getImageData(x, y, 1, 1).data.slice(0, 3).toString();
-            var newColor = ctx.createImageData(1, 1);
-            for (var i = 0; i < oldToNew[imgData].length; i++) {
-                newColor.data[i] = oldToNew[imgData][i];
-            }
-            newColor.data[3] = 255;
-            ctx.putImageData(newColor, x, y);
-        }
+    var imgData1D = ctx2.getImageData(0, 0, img2.width, img2.height).data;
+    console.log(imgData1D.length);
+    var imgData = [];
+    var lengthOnePxData = 4; // r, g, b, a
+    var lenthOnePxNoAlpha = 3; // r, g, b
+    for (var i = 0, len = imgData1D.length; i < len; i += lengthOnePxData) {
+        var currentPxData = imgData1D.slice(i, i + lenthOnePxNoAlpha).toString();
+        imgData.push.apply(imgData, oldToNew[currentPxData]);
+        imgData.push(255); // add the alpha back in
     }
+    ctx.putImageData(new ImageData(new Uint8ClampedArray(imgData), img.width), 0, 0);
     console.log("DONE!");
 }
 /**
@@ -160,6 +161,7 @@ function stretchArray(origArr, newLength) {
 /**
  * gives the palette number of the palette that the image follows
  * @param image
+ * @param cntxt - canvas context
  */
 function identifyPalette(image, cntxt) {
     // convert palette to rgb. originally in YCbCr
@@ -222,17 +224,18 @@ function getTemperature(event) {
     var highTemps = [5.1199951171875, 5.1199951171875, 5.04998779296875, 6.1300048828125, 7.519989013671875, 7.260009765625, 6.660003662109375, 5.92999267578125, 5.589996337890625, 5.8599853515625, 4.980010986328125, 4.850006103515625, 1.660003662109375, 1.8699951171875, 2.010009765625, 3.269989013671875, 3.410003662109375, 3.480010986328125, 4.779998779296875, 5.92999267578125, 5.589996337890625, 5.19000244140625, 1.79998779296875, 1.8699951171875, 2.079986572265625, 1.730010986328125, 1.79998779296875, 0.670013427734375, 3.480010986328125, 3.54998779296875, 3.75, 4.100006103515625, 4.160003662109375, 4.910003662109375, 5.04998779296875, 4.29998779296875, 4.44000244140625, 2.149993896484375, 2.230010986328125, 2.709991455078125, 3.82000732421875, 3.8900146484375, 4.850006103515625, 4.850006103515625, 4.850006103515625];
     var lowestTemp = Math.min.apply(Math, lowTemps);
     var highestTemp = Math.max.apply(Math, highTemps);
-    var currentPixel = ctx2.getImageData(event.pageX - elemLeft, event.pageY - elemTop, 1, 1).data.slice(0, 3).toString();
+    var currentPixel = ctx2.getImageData(event.pageX - elemLeft, event.pageY - elemTop, 1, 1).data.slice(0, 3);
     console.log(currentPixel);
     var pal = rainbowPalette.slice();
     var percentage = -1;
     // find color in palette that matches color of click location
     for (var i = 0; i < pal.length; i++) {
-        if (YCbCrTorgb(pal[i]).toString() == currentPixel) {
+        if (YCbCrTorgb(pal[i]) == currentPixel) {
             percentage = i / pal.length;
             break;
         }
     }
     var temp = (lowestTemp + ((highestTemp - lowestTemp) * percentage));
     document.getElementById("text").innerText = "Temperature: " + temp;
+    console.log("Temperature: " + temp);
 }
