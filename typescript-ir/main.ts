@@ -66,7 +66,6 @@ function YCbCrTorgb(c:number[])
     return [r, g, b];
 }
 
-
 /**
  * changes the colors of an image from its old palette to the new one
  *
@@ -97,27 +96,25 @@ function changePalette()
         else {newPal = stretchArray(newPal, oldPal.length);}
     }
 
-    let oldToNew = createObjectFromArrays(oldPal, newPal);
+    let oldToNew: object = createObjectFromArrays(oldPal, newPal);
 
     // change the pixels
-    for(let x:number = 0; x < img.width; x++)
+    let imgData1D:number[] = ctx2.getImageData(0, 0, img2.width, img2.height).data;
+    console.log(imgData1D.length);
+    let imgData:number[] = [];
+    const lengthOnePxData = 4; // r, g, b, a
+    const lenthOnePxNoAlpha = 3; // r, g, b
+
+    for(let i:number = 0, len:number = imgData1D.length; i < len; i += lengthOnePxData)
     {
-        for(let y:number = 0; y < img.height; y++)
-        {
-            let imgData:string = ctx2.getImageData(x, y, 1, 1).data.slice(0, 3).toString();
-            let newColor:ImageData = ctx.createImageData(1, 1);
-            for(let i:number = 0; i < oldToNew[imgData].length; i++)
-            {
-                newColor.data[i] = oldToNew[imgData][i];
-            }
-            newColor.data[3] = 255;
-            ctx.putImageData(newColor, x, y);
-        }
+        let currentPxData:string = imgData1D.slice(i, i + lenthOnePxNoAlpha).toString();
+        imgData.push(...oldToNew[currentPxData]);
+        imgData.push(255); // add the alpha back in
     }
+    ctx.putImageData(new ImageData(new Uint8ClampedArray(imgData), img.width), 0, 0);
 
-    console.log("DONE!")
+    console.log("DONE!");
 }
-
 
 /**
  * matches each value from each list in an object
@@ -191,6 +188,7 @@ function stretchArray(origArr:any[], newLength:number)
 /**
  * gives the palette number of the palette that the image follows
  * @param image
+ * @param cntxt - canvas context
  */
 function identifyPalette(image:any, cntxt:any)
 {
