@@ -39,7 +39,7 @@ class Image:
         """
         takes in an image that is similar to colors of palette and changes the colors so they match exactly with the
         given palette. The stitching process changing pixels slightly and this function corrects that
-        :param palette: output of palette_to_bgr()
+        :param palette: output of util.palette_to_bgr()
         """
         # flatten image into 2d array then find unique values
         unique_values, inv = np.unique(
@@ -47,8 +47,8 @@ class Image:
             axis=0, return_inverse=True)
         # get pixel matches
         for y in range(unique_values.shape[0]):
-            if y % 1000 == 0:
-                print(str(y) + "/" + str(unique_values.shape[0]))
+            # if y % 1000 == 0:
+            #     print(str(y) + "/" + str(unique_values.shape[0]))
             unique_values[y] = util.get_palette_color_match(unique_values[y], palette)
 
         self.img = unique_values[inv].reshape(self.img.shape)  # recreate original image shape with the changed colors

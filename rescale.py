@@ -15,6 +15,7 @@ import time
 import os
 from StitcherEasy import open_directory_chooser
 import util
+import Image
 
 
 class Rescaler:
@@ -83,22 +84,19 @@ class Rescaler:
         color_map = dict(zip(self.palette, adjusted_local_temps))  # color to temperature
 
         rescaled_image = np.zeros(img.shape)
-        temperature_image = np.zeros(img.shape)
-        image_to_map_temp = {}  # the rgb values don't match up perfectly for some reason,
-                                # this stores the correspondence with the temperature of the closest color in the map
-                                # key is bgr of img, value is temperature of color map
-        # for each pixel grab the palette color, convert to temperature, convert to standardized global colors
-        for y in range(img.shape[0]):
-            for x in range(img.shape[1]):
-                if tuple(img[y, x]) not in image_to_map_temp:
-                    palette_color = util.get_palette_color_match(img[y, x], self.palette)
-                    temperature = color_map[palette_color]
-                    image_to_map_temp[tuple(img[y, x])] = temperature
-                else:
-                    temperature = image_to_map_temp[tuple(img[y, x])]
 
-                temperature_image[y, x] = temperature
-                rescaled_image[y, x] = self.global_color_map[temperature]
+        # make sure colors match the palette exactly
+        image_obj = Image.Image(img)
+        image_obj.set_colors_to_palette(self.palette)
+        local_color_to_global = {}
+
+        # map individual local color to the global color
+        for color in color_map:
+            local_color_to_global[color] = self.global_color_map[color_map[color]]
+
+        # replace local colors with global colors row by row
+        for x in range(img.shape[1]):
+            rescaled_image[:, x] = util.replace(image_obj.img[:, x].astype(np.float64), local_color_to_global)
 
         return rescaled_image
 

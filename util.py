@@ -11,6 +11,7 @@ various helpful tools used in StitcherEasy and rescale
 from tkinter import Tk
 from tkinter.filedialog import askdirectory
 import numpy as np
+from decimal import Decimal
 
 PALETTES = ["arctic.pal", "coldest.pal", "contrast.pal", "gray.pal", "hottest.pal", "iron.pal", "lava.pal", "rainbow.pal", "wheel.pal"]
 
@@ -108,7 +109,7 @@ def stretch_list(orig, new_length):
     return new
 
 
-def replace(arr, dict):
+def replace(arr, d):
     """
     replaces values in 2d array according to dictionary
 
@@ -122,6 +123,18 @@ def replace(arr, dict):
     """
     u, inv = np.unique(arr, return_inverse=True,
                        axis=0)  # inv gives back indices allowing reconstruction of original array from unique elements
-    return np.array([dict[tuple(x)] for x in u])[inv].reshape(arr.shape)
+    # print(u)
+    # print(u.shape)
+    # print([d[tuple(x)] for x in u])
+
+    new_arr = np.array([d[tuple(x)] for x in u])[inv]
+
+    if new_arr.shape[-1] == arr.shape[-1]:
+        return new_arr.reshape(arr.shape)
+    else:
+        if len(new_arr.shape) == 1:
+            return new_arr.reshape(arr.shape[0], 1)
+        else:
+            return new_arr
 
 
