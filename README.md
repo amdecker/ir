@@ -19,7 +19,7 @@
   is the first thing I actually wrote using typescript and can be seen <a href="https://amdecker.github.io/ir/typescript-ir/">here</a></li>
     <li>Image.py provides a class for doing cool things with images like identifying & changing the palette of ir images, removing the black border that appears after stitching images together, edge detection, creating mixed infrared and visible light images, and more!</li>
         <ul>
-            <li>There are three types of mixed images you can create. <a href="https://github.com/amdecker/ir/blob/master/mx1.png">mx1</a>, <a href="https://github.com/amdecker/ir/blob/master/mx2.png">mx2</a>, and <a href="https://github.com/amdecker/ir/blob/master/mx3.png">mx3</a></li>
+            <li>There are three types of mixed images you can create. <a href="https://github.com/amdecker/ir/blob/master/example_images/mx1.png">mx1</a>, <a href="https://github.com/amdecker/ir/blob/master/example_images/mx2.png">mx2</a>, and <a href="https://github.com/amdecker/ir/blob/master/example_images/mx3.png">mx3</a></li>
         </ul>
     <li>rescale.py is used to change the colors of an ir image so that in a group of ir images the same colors mean the same temperatures in all the images</li>
     <li>util.py is useful.</li>
