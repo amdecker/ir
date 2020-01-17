@@ -25,7 +25,8 @@
    </ul>
   <br>
   <br>
-  <a href=https://concord.org/>concord.org</a>
+  <a href="https://concord.org/">https://concord.org/</a>
   <br>
-  <a href=http://energy.concord.org/isv/>Infrared Street View</a>
+  <a href="http://energy.concord.org/isv/">Infrared Street View</a>
+  <a href="https://charxie.github.io/irstreetview/index.html">IR Street View 2</a>
 </div>
