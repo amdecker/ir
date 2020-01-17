@@ -16,7 +16,7 @@
   <ul>
     <li>palettes contains files for describing how to color an ir image. Each line is a color in YCbCr color space. First line describes the coldest color, last line the warmest</li>
     <li>everything in typescript/ir is a demo of changing the palette of an image and displaying temperature data where a user clicks. It 
-  is my first thing actually wrote using typescript and can be seen <a href="https://amdecker.github.io/ir/typescript-ir/">here</a></li>
+  is the first thing I actually wrote using typescript and can be seen <a href="https://amdecker.github.io/ir/typescript-ir/">here</a></li>
     <li>Image.py provides a class for doing cool things with images like identifying & changing the palette of ir images, removing the black border that appears after stitching images together, edge detection, creating mixed infrared and visible light images, and more!</li>
     <li>rescale.py is used to change the colors of an ir image so that in a group of ir images the same colors mean the same temperatures in all the images</li>
     <li>util.py is useful.</li>
