@@ -139,7 +139,7 @@ class Image:
             https://opencv-python-tutroals.readthedocs.io/en/latest/py_tutorials/py_imgproc/py_contours/py_contours_begin/py_contours_begin.html
             https://www.pythonforengineers.com/image-and-video-processing-in-python/
         """
-        if not self.edges:
+        if self.edges is None:
             self.calc_edges()
         self.contours = cv2.findContours(self.edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[0]
 
@@ -173,13 +173,27 @@ def create_mx(vl, ir):
 
 def create_mx2(vl, ir):
     """
-    creates a mixed infrared-visible light image that DOES NOT preserve the colors of the infrared image
+    creates a mixed infrared-visible light image that DOES NOT preserve the colors of the infrared image. It layers the
+    two types of images together with most of the detail coming from the ir image.
     :param vl: visible light image of same scene as ir
     :param ir: infrared image of same scene as vl
     :return: the mixed image
     """
     return cv2.addWeighted(vl, .2, ir, .8, 0)
 
+
+def create_mx3(vl, ir):
+    """
+    creates mixed infrared-visible light image that combines edge detection with create_mx. This increases contrast on
+    the "important" outlines. The lines from edge detection are white while the regular details are black.
+    :param vl:
+    :param ir:
+    :return:
+    """
+    vis = Image(vl)
+    vis.find_contours()
+    ir_with_contours = draw_contours(ir, vis.contours, (255, 255, 255))
+    return create_mx(vis.img, ir_with_contours)
 
 
 

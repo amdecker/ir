@@ -118,7 +118,7 @@ def replace(arr, d):
 
     thanks to https://stackoverflow.com/a/16992881 for this solution
     :param arr: a 2-D array
-    :param dict: keys must contain all values in arr
+    :param d: keys must contain all values in arr
     :return: new np array with same shape as arr
     """
     u, inv = np.unique(arr, return_inverse=True,

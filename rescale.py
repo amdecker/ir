@@ -82,17 +82,16 @@ class Rescaler:
         adjusted_local_temps = self.match_local_with_global_temps(local_temps)
         # remakes the color map so that the temperatures now match up with the global temperatures
         color_map = dict(zip(self.palette, adjusted_local_temps))  # color to temperature
+        # map local color to the global color
+        local_color_to_global = {}
+        for color in color_map:
+            local_color_to_global[color] = self.global_color_map[color_map[color]]
 
         rescaled_image = np.zeros(img.shape)
 
-        # make sure colors match the palette exactly
+        # make sure colors in image match the palette exactly
         image_obj = Image.Image(img)
         image_obj.set_colors_to_palette(self.palette)
-        local_color_to_global = {}
-
-        # map individual local color to the global color
-        for color in color_map:
-            local_color_to_global[color] = self.global_color_map[color_map[color]]
 
         # replace local colors with global colors row by row
         for x in range(img.shape[1]):

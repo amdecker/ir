@@ -112,7 +112,7 @@ def main():
     ######
     print("\nSAVING...")
     panos[-1] = ir_pano.img
-    save_directory = "images"  # util.open_directory_chooser()
+    save_directory = "images"  # util.open_directory_chooser()  # <-- FOR FILE CHOOSER
     cv2.imwrite(save_directory + "/" + pano_num + "-vl.png", panos[0])
     cv2.imwrite(save_directory + "/" + pano_num + "-mx.png", panos[1])
     cv2.imwrite(save_directory + "/" + pano_num + "-ir.png", panos[2])
