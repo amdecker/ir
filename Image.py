@@ -161,6 +161,10 @@ def create_mx(vl, ir):
     """
     creates a mixed infrared-visible light image that preserves the colors of the infrared image while allowing you
     to see the edges and lines from the visible light image
+
+    see https://github.com/amdecker/ir/blob/master/mx1.png for what it looks like
+
+
     :param vl: visible light image of same scene as ir
     :param ir: infrared image of same scene as vl
     :return: the mixed image
@@ -175,6 +179,10 @@ def create_mx2(vl, ir):
     """
     creates a mixed infrared-visible light image that DOES NOT preserve the colors of the infrared image. It layers the
     two types of images together with most of the detail coming from the ir image.
+
+    see https://github.com/amdecker/ir/blob/master/mx2.png for what it looks like
+
+
     :param vl: visible light image of same scene as ir
     :param ir: infrared image of same scene as vl
     :return: the mixed image
@@ -186,6 +194,9 @@ def create_mx3(vl, ir):
     """
     creates mixed infrared-visible light image that combines edge detection with create_mx. This increases contrast on
     the "important" outlines. The lines from edge detection are white while the regular details are black.
+
+    see https://github.com/amdecker/ir/blob/master/mx3.png for what it looks like
+
     :param vl:
     :param ir:
     :return:
