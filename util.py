@@ -11,28 +11,29 @@ various helpful tools used in StitcherEasy and rescale
 from tkinter import Tk
 from tkinter.filedialog import askdirectory
 import numpy as np
-from decimal import Decimal
+from typing import List, Dict, Any, Tuple, TextIO
 
-PALETTES = ["arctic.pal", "coldest.pal", "contrast.pal", "gray.pal", "hottest.pal", "iron.pal", "lava.pal", "rainbow.pal", "wheel.pal"]
+PALETTES: List[str] = ["arctic.pal", "coldest.pal", "contrast.pal", "gray.pal", "hottest.pal", "iron.pal", "lava.pal", "rainbow.pal", "wheel.pal"]
+Color = Tuple[int, int, int]
 
 
-def open_directory_chooser():
+def open_directory_chooser() -> str:
     """opens system file chooser and returns path to directory the user selects"""
-    root = Tk()
+    root: Tk = Tk()
     root.withdraw()
     root.update()
-    directory_name = askdirectory()
+    directory_name: str = askdirectory()
     root.update()
     root.destroy()
     return directory_name
 
 
-def swap_dict(d):
+def swap_dict(d: Dict) -> Dict:
     """switches keys with values in a dictionary"""
     return dict((v, k) for k, v in d.items())
 
 
-def make_double_digit_str(num):
+def make_double_digit_str(num: int) -> str:
     """
     useful for file names, turns 9 into "09" but keeps 15 as "15"
     :param num: one or two digit number
@@ -41,35 +42,36 @@ def make_double_digit_str(num):
     return str(num) if num > 9 else "0" + str(num)
 
 
-def YCbCr_to_bgr(c):
+def ycbcr_to_bgr(c: Color) -> Color:
     """
     converts from color space YCbCr to BGR
-    :param c: tuple of three numbers
+    :param c: tuple of three numbers that give the YCbCr color
     :return: tuple of (b, g, r)
     """
-    r = int(c[0] + 1.40200 * (c[1] - 128))
-    g = int(c[0] - 0.34414 * (c[2] - 128) - 0.71414 * (c[1] - 128))
-    b = int(c[0] + 1.77200 * (c[2] - 128))
+    r: int = int(c[0] + 1.40200 * (c[1] - 128))
+    g: int = int(c[0] - 0.34414 * (c[2] - 128) - 0.71414 * (c[1] - 128))
+    b: int = int(c[0] + 1.77200 * (c[2] - 128))
     r = max(0, min(255, r))
     g = max(0, min(255, g))
     b = max(0, min(255, b))
-    return (b, g, r)
+    return b, g, r
 
 
-def palette_to_bgr(filename):
+def palette_to_bgr(filename: str) -> List[Color]:
     """
     creates list of tuple of (b, g, r) values for each color in palette
     :param filename: path to .pal palette file
     :return: list of tuple of (b, g, r)
     """
+    f: TextIO
     with open(filename) as f:
-        palette = [tuple([int(y) for y in x.split(",")]) for x in f.read().split("\n")]
+        palette: List[Color] = [tuple([int(y) for y in x.split(",")]) for x in f.read().split("\n")]
         for i in range(len(palette)):
-            palette[i] = YCbCr_to_bgr(palette[i])
+            palette[i] = ycbcr_to_bgr(palette[i])
     return palette
 
 
-def get_palette_color_match(pxl, palette):
+def get_palette_color_match(pxl: np.ndarray, palette: List[Color]) -> Color:
     """
     the bgr values of the images don't match up perfectly with the .pal file, so return the color in the palette
     closest to that of the pixel
@@ -78,11 +80,11 @@ def get_palette_color_match(pxl, palette):
     :return: tuple of bgr color in the palette
     """
     differences = np.sum(abs(palette - pxl), axis=1)  # how different the colors are
-    idx = np.where(differences == np.amin(differences))[0][0]  # get index of closest color
+    idx: int = np.where(differences == np.amin(differences))[0][0]  # get index of closest color
     return palette[idx]
 
 
-def stretch_list(orig, new_length):
+def stretch_list(orig: List, new_length: int) -> List:
     """
     stretches a list to be a certain length and tries to fill it in as evenly as possible
 
@@ -91,17 +93,17 @@ def stretch_list(orig, new_length):
     :param new_length: length of final stretched list
     :return: list with length leng filled evenly with values from orig
     """
-    new = [None] * new_length
-    num_each = round(len(new) / len(orig))
+    new: List = [None] * new_length
+    num_each: int = round(len(new) / len(orig))
 
-    prev = 0
-    i = 0
+    prev: int = 0
+    i: int = 0
     while num_each * (i + 1) <= new_length and i < len(orig):
         new[prev:num_each * (i + 1)] = [orig[i]] * num_each
         prev = num_each * (i + 1)
         i += 1
 
-    numNone = new.count(None)
+    numNone:int = new.count(None)
     if numNone > 0:
         if i >= len(orig):
             i = len(orig) - 1
@@ -109,7 +111,7 @@ def stretch_list(orig, new_length):
     return new
 
 
-def replace(arr, d):
+def replace(arr: np.ndarray, d: Dict) -> np.ndarray:
     """
     replaces values in 2d array according to dictionary
 

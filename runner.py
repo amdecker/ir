@@ -1,13 +1,6 @@
 __author__ = "Amos Decker"
 __date__ = "January 2020"
 
-"""
-1 rescale
-2 stitch
-3 set_colors_to_palette
-4 (optional) change palette)
-"""
-
 import time
 from rescale import Rescaler
 import util
@@ -15,8 +8,10 @@ import cv2
 import StitcherEasy
 import Image
 import numpy as np
+from typing import List
 
-def get_images(directory, type, NUM_IMGS):
+
+def get_images(directory: str, type: str, NUM_IMGS: int):
     """
 
     :param directory: path to directory
@@ -31,7 +26,6 @@ def get_images(directory, type, NUM_IMGS):
 def make_all_palettes():
     """
     take one image and apply all the different palettes to it
-    :return:
     """
     for pal in util.PALETTES:
         print(pal)
@@ -40,21 +34,33 @@ def make_all_palettes():
 
 
 def main():
-    NUM_IMGS = 45
-    REMOVE_BLACK = True
-    INIT_PALETTE = "iron.pal"  # the palette that the original individual pano pictures are in (if unknown, can always use util.identify_palette()
+    """
+    1 rescale
+    2 stitch
+        2.1 remove black border
+    3 set_colors_to_palette
+    4 (optional) change palette
+    5 (optional) create mixed ir/vl image -- not relying on flir
+    6 save!
+    """
+    NUM_IMGS: int = 45
+    REMOVE_BLACK: bool = True
+    INIT_PALETTE: str = "iron.pal"  # the palette that the original individual pano pictures are in (if unknown, can always use util.identify_palette()
+    USE_FLIR_MX: bool = True
+    CREATE_MY_MX: bool = True
+    CHANGE_PALETTE: bool = False
 
-    directory = util.open_directory_chooser()
-    pano_num = directory[-14:]
+    directory: str = util.open_directory_chooser()
+    pano_num: str = directory[-14:]
 
-    start = time.time()
+    start: float = time.time()
 
     #######
     # RESCALE images -- makes the colors that you see represent the same temperatures across all images
     #######
     print("\nRESCALE...")
-    r = Rescaler(directory)
-    all_rescaled = []
+    r: Rescaler = Rescaler(directory)
+    all_rescaled: List[np.ndarray] = []
     for i in range(NUM_IMGS):
         print(str(i + 1) + "/" + str(NUM_IMGS))
         all_rescaled.append(r.rescale_image(i))
@@ -64,47 +70,54 @@ def main():
     # STITCH images
     ######
     print("\nSTITCH...")
-    images_to_stitch = []
-    for type in ["vl", "mx"]:
-        images_to_stitch.append(get_images(directory, type, NUM_IMGS))
+    if USE_FLIR_MX:
+        types = ["vl", "mx"]
+        images_to_stitch: List[List[np.ndarray], List[np.ndarray], List[np.ndarray]] = []
+    else:
+        types = ["vl"]
+        images_to_stitch: List[List[np.ndarray], List[np.ndarray]] = []
+    for t in types:
+        images_to_stitch.append(get_images(directory, t, NUM_IMGS))
     images_to_stitch.append(all_rescaled)
 
-    panos = StitcherEasy.stitch(images_to_stitch, use_kaze=True)  # if the stitch fails try changing kaze to False/True
+    panos: List[np.ndarray] = StitcherEasy.stitch(images_to_stitch, use_kaze=True)  # if the stitch fails try changing kaze to False/True
 
     for i in range(len(panos)):
         panos[i] = panos[i].astype(np.uint8)  # uint8 is same type as when you read img from a file
 
     # get rid of black border
     if REMOVE_BLACK:
-        # the ir image wont ever have black pixels other than the border to get rid of so just get limits for that one
-        im = Image.Image(panos[-1])
-        upper_limit, lower_limit = im.remove_black()
+        # the ir image wont ever have black pixels other than the border so just get limits for that one
+        im: Image.Image = Image.Image(panos[-1])
+        upper_limit, lower_limit, removed_left, removed_right = im.remove_black()
         panos[-1] = im.img
         for i in range(len(panos) - 1):
             panos[i] = panos[i][upper_limit:lower_limit, :]
+            if removed_left:
+                panos[i] = panos[i][:, 1:]
+            if removed_right:
+                panos[i] = panos[i][:, :-1]
 
-    ir_pano = Image.Image(panos[-1])
+    ir_pano: Image.Image = Image.Image(panos[-1])
+
     #######
     # CHANGE ir pano to match colors in the palette (the stitching process changes pixel data slightly, this corrects that)
     #######
     print("\nMATCH PALETTE...")
     ir_pano.set_colors_to_palette(util.palette_to_bgr("palettes/" + INIT_PALETTE))
 
-
     #######
     # CHANGE PALETTE (optional)
     ######
-    if True:
+    if CHANGE_PALETTE:
         print("\nCHANGE PALETTE...")
         ir_pano.change_palette("lava.pal")
-
 
     #######
     # Create mixed ir/vl using my program, not FLIR's (optional)
     #######
-    if True:
-        print(panos[0])
-        my_mx = Image.create_mx(panos[0], ir_pano.img)
+    if CREATE_MY_MX:
+        my_mx: np.ndarray = Image.create_mx(panos[0], ir_pano.img)
 
     print("total time:", time.time() - start)
     ######
@@ -112,14 +125,12 @@ def main():
     ######
     print("\nSAVING...")
     panos[-1] = ir_pano.img
-    save_directory = "images"  # util.open_directory_chooser()  # <-- FOR FILE CHOOSER
+    save_directory = "copleyOutput2"  # util.open_directory_chooser()  # <-- FOR FILE CHOOSER
     cv2.imwrite(save_directory + "/" + pano_num + "-vl.png", panos[0])
     cv2.imwrite(save_directory + "/" + pano_num + "-mx.png", panos[1])
     cv2.imwrite(save_directory + "/" + pano_num + "-ir.png", panos[2])
     cv2.imwrite(save_directory + "/" + pano_num + "-mymx.png", my_mx)
 
 
-
 if __name__ == "__main__":
     main()
-    # make_all_palettes()

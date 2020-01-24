@@ -14,42 +14,45 @@ import numpy as np
 import time
 import os
 from StitcherEasy import open_directory_chooser
+from util import Color
 import util
 import Image
+from typing import List, Dict
 
 
 class Rescaler:
-    def __init__(self, directory_path, palette="palettes/iron.pal"):
-        self.directory_path = directory_path
+    def __init__(self, directory_path: str, palette: str = "palettes/iron.pal"):
+        self.directory_path: str = directory_path
 
         # convert palette to bgr. originally in YCbCr
-        self.palette = util.palette_to_bgr(palette)
+        self.palette: List[Color] = util.palette_to_bgr(palette)
 
         # grab temperature extremes
-        with open(directory_path + "/info.json") as f:
-            info = json.loads(f.read())
-            self.highest = info["highestTemperatures"]
-            self.lowest = info["lowestTemperatures"]
+        # with open(directory_path + "/info.json") as f:
+        with open("infos/info-{0}.json".format(directory_path[directory_path.index("-") + 1:])) as f:
+            info: Dict = json.loads(f.read())
+            self.highest: List[float] = info["highestTemperatures"]
+            self.lowest: List[float] = info["lowestTemperatures"]
 
-        self.global_color_map = self.get_global_temp_color_map()
+        self.global_color_map: Dict[float, Color] = self.get_global_temp_color_map()
 
-    def match_local_with_global_temps(self, local_temps):
+    def match_local_with_global_temps(self, local_temps: List[float]) -> List[float]:
         """
         the color map temps and the global temps will not match perfectly...so find closest and change local temp
         to same value as closest global temp
         :param local_temps: the temperatures from the temperature/color map
         :return adjusted_local_temps: list of temperatures
         """
-        global_temps = np.array(list(self.global_color_map.keys()))
-        adjusted_local_temps = []
+        global_temps: np.ndarray = np.array(list(self.global_color_map.keys()))
+        adjusted_local_temps: List[float] = []
         for n in range(len(local_temps)):
-            loc_temp = local_temps[n]
-            differences = abs(global_temps - loc_temp)  # how different the temps are
-            idx = np.where(differences == np.amin(differences))[0][0]  # get index of closest temp
+            loc_temp: float = local_temps[n]
+            differences: np.ndarray = abs(global_temps - loc_temp)  # how different the temps are
+            idx: int = np.where(differences == np.amin(differences))[0][0]  # get index of closest temp
             adjusted_local_temps.append(global_temps[idx])
         return adjusted_local_temps
 
-    def get_global_temp_color_map(self):
+    def get_global_temp_color_map(self) -> Dict[float, Color]:
         """
         uses lowest temperature among all images and highest temperature among all images to get a global temperature
         color map
@@ -57,40 +60,40 @@ class Rescaler:
         """
         return self.get_temp_color_map(min(self.lowest), max(self.highest))
 
-    def get_temp_color_map(self, low, high):
+    def get_temp_color_map(self, low, high) -> Dict[float, Color]:
         """
         uses lowest temperature and highest temperature to get a temperature color map
         :param low: lowest temperature
         :param high: highest temperature
-        :return: dictionary {temperature: [r, g, b], ...}
+        :return: dictionary {temperature: [b, g, r], ...}
         """
-        step_size = (high - low) / (len(self.palette) - 1)
+        step_size: float = (high - low) / (len(self.palette) - 1)
         return dict(zip([low + i * step_size for i in range(len(self.palette))], self.palette))
 
-    def rescale_image(self, img_num):
+    def rescale_image(self, img_num: int) -> np.ndarray:
         """
         scales the colors in all images based on the lowest and highest temperature among all the pictures
         :param img_num: 0, 1, 2, ..., n the image number is used to grab the image file and the temperature data
         :return: the rescaled image
         """
-        img_num_str = util.make_double_digit_str(img_num)
-        img = cv2.imread(self.directory_path + "/ir{0}.png".format(img_num_str))
+        img_num_str: str = util.make_double_digit_str(img_num)
+        img: np.ndarray = cv2.imread(self.directory_path + "/ir{0}.png".format(img_num_str))
 
         # get colors and temperatures separately
-        color_map = self.get_temp_color_map(self.lowest[img_num], self.highest[img_num])  # gets temperature to color
-        local_temps = list(color_map.keys())
-        adjusted_local_temps = self.match_local_with_global_temps(local_temps)
+        color_map_orig: Dict[float, Color] = self.get_temp_color_map(self.lowest[img_num], self.highest[img_num])  # gets temperature to color
+        local_temps: List[float] = list(color_map_orig.keys())
+        adjusted_local_temps: List[float] = self.match_local_with_global_temps(local_temps)
         # remakes the color map so that the temperatures now match up with the global temperatures
-        color_map = dict(zip(self.palette, adjusted_local_temps))  # color to temperature
+        color_map: Dict[Color, float] = dict(zip(self.palette, adjusted_local_temps))  # color to temperature
         # map local color to the global color
-        local_color_to_global = {}
+        local_color_to_global: Dict[Color, Color] = {}
         for color in color_map:
             local_color_to_global[color] = self.global_color_map[color_map[color]]
 
-        rescaled_image = np.zeros(img.shape)
+        rescaled_image: np.ndarray = np.zeros(img.shape)
 
         # make sure colors in image match the palette exactly
-        image_obj = Image.Image(img)
+        image_obj: Image.Image = Image.Image(img)
         image_obj.set_colors_to_palette(self.palette)
 
         # replace local colors with global colors row by row
@@ -104,8 +107,8 @@ def main():
     NUM_IMGS = 45
 
     print("*** SELECT folder containing all images ***")
-    # directory = open_directory_chooser()  # pop-up file chooser
-    directory = "/Users/ccuser/Desktop/AmosDecker/ir/images/pano-20200109115026"
+    directory = open_directory_chooser()  # pop-up file chooser
+    # directory = "/Users/ccuser/Desktop/AmosDecker/ir/images/pano-20200109115026"
     print(directory)
     pano_num = directory[-14:]
 
