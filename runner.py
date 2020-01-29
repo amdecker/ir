@@ -125,7 +125,7 @@ def main():
     ######
     print("\nSAVING...")
     panos[-1] = ir_pano.img
-    save_directory = "copleyOutput2"  # util.open_directory_chooser()  # <-- FOR FILE CHOOSER
+    save_directory = util.open_directory_chooser()
     cv2.imwrite(save_directory + "/" + pano_num + "-vl.png", panos[0])
     cv2.imwrite(save_directory + "/" + pano_num + "-mx.png", panos[1])
     cv2.imwrite(save_directory + "/" + pano_num + "-ir.png", panos[2])
