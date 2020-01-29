@@ -12,7 +12,7 @@
   <div><i>NOTE: for Java stiching there are two options: #1 is to run main() in IrStitcher.java. This is pretty good, but if there are more than 20-30 images it won't work. Option #2 is main() in IrStitcher2.java this only seems to work using the ORB feature detector on macOS.</i></div>
   <br>
   <br>
-  <div>If you are new to python make sure this entire project is downloaded onto your computer and then open up terminal (mac) or command prompt (windows) and navigate to the directory containing runner.py and type (no quotes) "python3 runner.py". If you do not have python3 try just "python runner.py"
+  <div>If you are new to python make sure this entire project is downloaded onto your computer and then open up terminal and navigate to the directory containing runner.py and type (no quotes) "python3 runner.py". If you do not have python3 try just "python runner.py". On windows open command prompt and you might have to just type "py" instead of python.
   <br>
   <br>
   <h1>Other Files</h1>
