@@ -12,6 +12,9 @@
   <div><i>NOTE: for Java stiching there are two options: #1 is to run main() in IrStitcher.java. This is pretty good, but if there are more than 20-30 images it won't work. Option #2 is main() in IrStitcher2.java this only seems to work using the ORB feature detector on macOS.</i></div>
   <br>
   <br>
+  <div>If you are new to python make sure this entire project is downloaded onto your computer and then open up terminal (mac) or command prompt (windows) and navigate to the directory containing runner.py and type (no quotes) "python3 runner.py". If you do not have python3 try just "python runner.py"
+  <br>
+  <br>
   <h1>Other Files</h1>
   <ul>
     <li>palettes/ contains files for describing how to color an ir image. Each line is a color in YCbCr color space. First line describes the coldest color, last line the warmest</li>
