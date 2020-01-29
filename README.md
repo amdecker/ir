@@ -7,7 +7,7 @@
     <li>stitch the images -- ir images and vl images are needed, but mixed images are optional (they can be created later on)</li>
     <li>(optional) change the color palette of the panorama</li>
     <li>(optional) create mixed visible light/infrared image that does not rely on the mixed images that flir creates</li>
-    <li>save the panoramas</li>
+    <li>save the panoramas -- it opens a pop-up file chooser where you can select the folder where you want the images to be saved</li>
   </ul>
   <div><i>NOTE: for Java stiching there are two options: #1 is to run main() in IrStitcher.java. This is pretty good, but if there are more than 20-30 images it won't work. Option #2 is main() in IrStitcher2.java this only seems to work using the ORB feature detector on macOS.</i></div>
   <br>
