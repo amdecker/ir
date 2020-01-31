@@ -125,9 +125,6 @@ def replace(arr: np.ndarray, d: Dict) -> np.ndarray:
     """
     u, inv = np.unique(arr, return_inverse=True,
                        axis=0)  # inv gives back indices allowing reconstruction of original array from unique elements
-    # print(u)
-    # print(u.shape)
-    # print([d[tuple(x)] for x in u])
 
     new_arr = np.array([d[tuple(x)] for x in u])[inv]
 

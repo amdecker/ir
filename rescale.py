@@ -21,20 +21,58 @@ from typing import List, Dict
 
 
 class Rescaler:
-    def __init__(self, directory_path: str, palette: str = "palettes/iron.pal"):
+    def __init__(self, directory_path: str, palette: str = "palettes/iron.pal", ):
         self.directory_path: str = directory_path
 
         # convert palette to bgr. originally in YCbCr
         self.palette: List[Color] = util.palette_to_bgr(palette)
 
         # grab temperature extremes
-        # with open(directory_path + "/info.json") as f:
-        with open("infos/info-{0}.json".format(directory_path[directory_path.index("-") + 1:])) as f:
+        with open(directory_path + "/info.json") as f:
             info: Dict = json.loads(f.read())
             self.highest: List[float] = info["highestTemperatures"]
             self.lowest: List[float] = info["lowestTemperatures"]
 
-        self.global_color_map: Dict[float, Color] = self.get_global_temp_color_map()
+        self.global_color_map: Dict[float, Color] = None
+
+    def replace_extreme_high_temps(self, thresh: float = 150, overwrite_file: bool = False) -> None:
+        """
+        replaces values greater than thresh with the closest below the threshold
+        example:
+            given:
+                image num   |   high temp
+                        #8  |   2
+                        #9  |   150.25
+                        #10 |   150.25
+                        #11 |   5
+            the result would be:
+                image num   |   high temp
+                        #8  |   2
+                        #9  |   2
+                        #10 |   5
+                        #11 |   5
+        :param thresh: default is 150, the max temperature that the camera can get is 150.25 (often you get this as a
+        result of pointing camera at the sun or from a reflection off of a car or window)
+        :param overwrite_file: whether or not to replace the values in info.json with these new ones
+        """
+        idxs_to_replace = []
+        for i in range(len(self.highest)):
+            if self.highest[i] > thresh:
+                idxs_to_replace.append(i)
+
+        for i in range(len(idxs_to_replace)):
+            look_lower_index = i < len(idxs_to_replace) / 2
+            if look_lower_index:
+                self.highest[idxs_to_replace[i]] = self.highest[idxs_to_replace[0] - 1]
+            else:
+                self.highest[idxs_to_replace[i]] = self.highest[idxs_to_replace[-1] + 1]
+
+        if overwrite_file:
+            with open(self.directory_path + "/info.json", "r+") as f:
+                info: Dict = json.loads(f.read())
+                info["highestTemperatures"] = self.highest
+                f.truncate(0)
+                f.write(json.dumps(info))
 
     def match_local_with_global_temps(self, local_temps: List[float]) -> List[float]:
         """
@@ -47,8 +85,8 @@ class Rescaler:
         adjusted_local_temps: List[float] = []
         for n in range(len(local_temps)):
             loc_temp: float = local_temps[n]
-            differences: np.ndarray = abs(global_temps - loc_temp)  # how different the temps are
-            idx: int = np.where(differences == np.amin(differences))[0][0]  # get index of closest temp
+            differences: np.ndarray = abs(global_temps - loc_temp)
+            idx: int = np.where(differences == np.amin(differences))[0][0]
             adjusted_local_temps.append(global_temps[idx])
         return adjusted_local_temps
 
@@ -76,6 +114,8 @@ class Rescaler:
         :param img_num: 0, 1, 2, ..., n the image number is used to grab the image file and the temperature data
         :return: the rescaled image
         """
+        self.global_color_map: Dict[float, Color] = self.get_global_temp_color_map()
+
         img_num_str: str = util.make_double_digit_str(img_num)
         img: np.ndarray = cv2.imread(self.directory_path + "/ir{0}.png".format(img_num_str))
 

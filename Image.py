@@ -1,6 +1,10 @@
 __author__ = "Amos Decker"
 __date__ = "Jan 2020"
 
+"""
+provides a class for dealing with (mostly) infrared images and infrared panoramas
+"""
+
 import numpy as np
 from util import Color
 import util
