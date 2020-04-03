@@ -1,7 +1,7 @@
 # ir
 <div>
   <h1>Image Stitching</h1>
-  <div>Run main() in runner.py to have a pop-up file chooser. Select the folder that contains the images you want to stitch and it will:</div>
+  <div>Run main() in runner.py to have a pop-up file chooser. Select the folder that contains the images you want to stitch and it will: </div>
   <ul>
     <li>rescale the images so that the same colors mean the same temperatures in all the images</li>
     <li>stitch the images -- ir images and vl images are needed, but mixed images are optional (they can be created later on)</li>
