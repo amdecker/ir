@@ -35,5 +35,5 @@
   <br>
   <a href="http://energy.concord.org/isv/">Infrared Street View</a>
   <br>
-  <a href="https://charxie.github.io/irstreetview/index.html">IR Street View 2</a>
+  <a href="https://irstreetview-xi.now.sh/maps">IR Street View 2</a>
 </div>
